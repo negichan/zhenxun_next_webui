@@ -1,16 +1,18 @@
 name: Release WebUI
 
-# 改动 package.json 版本号推到 main 时：自动构建前端并发布 GitHub Release。
-# 若该版本的 tag（v<version>）已存在则跳过，便于安全地反复推 main。
-# 也可在 Actions 页手动 workflow_dispatch 强制发版。
+# 只由 git tag 驱动：推送形如 v0.6.0 的 tag 才构建并发布 Release。
+# 版本号取自 tag 名，不读 package.json；也可在 Actions 页手动指定 tag 补发。
 
 on:
   push:
-    branches: [main]
-    paths:
-      - package.json
+    tags:
+      - "v[0-9]*"
   workflow_dispatch:
     inputs:
+      tag:
+        description: "要发布的 tag，如 v0.6.0"
+        required: true
+        type: string
       force:
         description: "忽略已存在的 Release，强制重新发布"
         type: boolean
@@ -20,14 +22,25 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-webui
+  group: release-webui-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
+      - name: Check tag format
+        run: |
+          echo "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || {
+            echo "tag 需形如 v0.6.0，当前为 '$TAG'";
+            exit 1;
+          }
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -40,46 +53,44 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Read version
-        id: pkg
-        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-
-      - name: Check existing release
-        id: exists
+      - name: Decide whether to publish
+        id: decide
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.pkg.outputs.version }}
+          FORCE: ${{ github.event.inputs.force }}
         run: |
-          if gh release view "v${VERSION}" >/dev/null 2>&1; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [ "$FORCE" = "true" ]; then
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              echo "::notice::$TAG 已发布，跳过（勾选 force 可强制重发）"
+            fi
           else
-            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Skip if already released
-        if: steps.exists.outputs.found == 'true' && github.event.inputs.force != 'true'
-        run: echo "v${{ steps.pkg.outputs.version }} 已发布，跳过（如需重发用 force）"
-
       - name: Install & build
-        if: steps.exists.outputs.found == 'false' || github.event.inputs.force == 'true'
+        if: steps.decide.outputs.publish == 'true'
         run: |
           pnpm install --frozen-lockfile
           pnpm build
 
       - name: Pack dist (archive root = index.html)
-        if: steps.exists.outputs.found == 'false' || github.event.inputs.force == 'true'
+        if: steps.decide.outputs.publish == 'true'
         run: |
           test -f dist/index.html || { echo "dist/index.html 不存在，构建失败"; exit 1; }
           (cd dist && zip -rq ../webui-dist.zip .)
 
       - name: Publish release
-        if: steps.exists.outputs.found == 'false' || github.event.inputs.force == 'true'
+        if: steps.decide.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.pkg.outputs.version }}
-          name: "WebUI v${{ steps.pkg.outputs.version }}"
+          tag_name: ${{ env.TAG }}
+          name: "WebUI ${{ env.TAG }}"
           body: "自动构建的前端发布：${{ github.sha }}"
           files: webui-dist.zip
+          generate_release_notes: true
           draft: false
           prerelease: false
           # 强制重发已存在的 Release 时需要覆盖
