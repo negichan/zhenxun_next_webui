@@ -162,7 +162,16 @@ const handleStatusMessage = (data: any) => {
 };
 
 const handleStatusStateChange = (isOpen: boolean) => {
-    if (!isOpen) console.log("系统状态 WebSocket 连接断开");
+    if (isOpen) {
+        // 连上即补一次：bot 上下线是边沿事件，握手完成前接入的 bot 会漏推，
+        // 重连后也靠这里把列表拉回一致
+        botStore
+            .getBotList()
+            .then(() => useChatStore().loadContacts())
+            .catch(() => {});
+    } else {
+        console.log("系统状态 WebSocket 连接断开");
+    }
 };
 
 const handleLogMessage = (log: any) => {
