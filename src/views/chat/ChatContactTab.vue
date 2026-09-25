@@ -209,7 +209,7 @@ const openRemoveConfirm = (type: ContactType, item: any) => {
                     "p",
                     {
                         class:
-                            "flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-slate-700",
+                            "flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-zx-text",
                     },
                     [
                         "确定要删除",
@@ -232,12 +232,12 @@ const openRemoveConfirm = (type: ContactType, item: any) => {
                               ),
                         h(
                             "span",
-                            { class: "font-bold text-slate-900" },
+                            { class: "font-bold text-zx-text-strong" },
                             removeTarget.value?.name ?? "",
                         ),
                         h(
                             "span",
-                            { class: "text-slate-400" },
+                            { class: "text-zx-text-subtle" },
                             `(${removeTarget.value?.id})`,
                         ),
                         "吗？",
@@ -357,9 +357,9 @@ const doRemove = async () => {
                         :name="friend.remark || friend.nickname || '友'"
                         size="sm"
                     />
-                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700"
+                    <span class="min-w-0 flex-1 truncate text-sm text-zx-text"
                         >{{ friend.remark || friend.nickname || "未知好友" }}
-                        <span class="text-xs text-gray-500"
+                        <span class="text-xs text-zx-text-muted"
                             >({{ friend.user_id }})</span
                         >
                     </span>
@@ -367,7 +367,7 @@ const doRemove = async () => {
             </div>
             <div
                 v-if="loadingContacts"
-                class="py-2 text-center text-xs text-gray-400"
+                class="py-2 text-center text-xs text-zx-text-subtle"
             >
                 加载中...
             </div>
@@ -414,9 +414,9 @@ const doRemove = async () => {
                         :name="group.group_name"
                         size="sm"
                     />
-                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700"
+                    <span class="min-w-0 flex-1 truncate text-sm text-zx-text"
                         >{{ group.group_name }}
-                        <span class="text-xs text-gray-500"
+                        <span class="text-xs text-zx-text-muted"
                             >({{ group.group_id }})</span
                         >
                     </span>
@@ -424,7 +424,7 @@ const doRemove = async () => {
             </div>
             <div
                 v-if="loadingContacts"
-                class="py-2 text-center text-xs text-gray-400"
+                class="py-2 text-center text-xs text-zx-text-subtle"
             >
                 加载中...
             </div>

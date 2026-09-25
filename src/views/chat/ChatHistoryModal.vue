@@ -7,6 +7,7 @@ import { useBotStore } from "@/store/bot.ts";
 import { getCachedMessages } from "@/utils/chat-message-db";
 import { useDynamicVirtualList } from "@/composables/useDynamicVirtualList";
 import MiniDatePicker from "@/components/zxcomponent/MiniDatePicker.vue";
+import ZXInput from "@/components/zxcomponent/ZXInput.vue";
 import type { ChatMessage } from "@/types";
 
 const props = defineProps<{
@@ -282,17 +283,11 @@ watch(
                 >
                     <!-- 搜索框 -->
                     <div class="shrink-0 px-5 pt-5 pb-3">
-                        <div
-                            class="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 transition-all focus-within:border-slate-400 focus-within:bg-white"
-                        >
-                            <Search class="h-4 w-4 shrink-0 text-slate-400" />
-                            <input
-                                v-model="searchKeyword"
-                                type="text"
-                                placeholder="搜索"
-                                class="min-w-0 flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                            />
-                        </div>
+                        <ZXInput
+                            v-model="searchKeyword"
+                            type="search"
+                            placeholder="搜索"
+                        />
                     </div>
 
                     <!-- tab 行 + 筛选按钮 -->
@@ -306,7 +301,7 @@ watch(
                             :class="
                                 activeTab === tab.key
                                     ? 'font-semibold text-zx-primary'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                    : 'text-zx-text-muted hover:text-zx-text'
                             "
                             type="button"
                             @click="activeTab = tab.key"
@@ -323,7 +318,7 @@ watch(
                             :class="
                                 filterOpen || filterDate || filterMember
                                     ? 'bg-zx-primary-soft text-zx-primary'
-                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                                    : 'bg-slate-100 text-zx-text-muted hover:bg-slate-200 hover:text-zx-text'
                             "
                             type="button"
                             @click="filterOpen = !filterOpen"
@@ -369,7 +364,7 @@ watch(
                                         <!-- 日期分组头 -->
                                         <div
                                             v-if="item.kind === 'date'"
-                                            class="flex h-9 items-center text-xs font-semibold text-slate-400"
+                                            class="flex h-9 items-center text-xs font-semibold text-zx-text-subtle"
                                         >
                                             {{ item.label }}
                                         </div>
@@ -379,34 +374,21 @@ watch(
                                             v-else
                                             class="flex gap-3 border-b border-slate-100 py-3 pr-2"
                                         >
-                                            <img
-                                                v-if="item.message?.avatar"
-                                                :src="item.message.avatar"
-                                                referrerpolicy="no-referrer"
-                                                class="h-9 w-9 shrink-0 rounded-full object-cover"
-                                                @error="
-                                                    item.message!.avatar = ''
+                                            <ZxAvatar
+                                                :src="item.message?.avatar"
+                                                :name="
+                                                    item.message?.user_name ||
+                                                    item.message?.user_id ||
+                                                    '?'
                                                 "
+                                                size="md"
+                                                class="shrink-0"
                                             />
-                                            <div
-                                                v-else
-                                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zx-primary-soft text-xs font-bold text-zx-primary"
-                                            >
-                                                {{
-                                                    (
-                                                        item.message
-                                                            ?.user_name ||
-                                                        item.message
-                                                            ?.user_id ||
-                                                        "?"
-                                                    ).charAt(0)
-                                                }}
-                                            </div>
 
                                             <div class="min-w-0 flex-1">
                                                 <!-- 发送者（浅色小字，避免与内容混淆） -->
                                                 <p
-                                                    class="pb-1 text-xs font-semibold leading-4 text-slate-400"
+                                                    class="pb-1 text-xs font-semibold leading-4 text-zx-text-subtle"
                                                 >
                                                     {{
                                                         senderNameOf(
@@ -417,7 +399,7 @@ watch(
 
                                                 <!-- 内容块 -->
                                                 <div
-                                                    class="space-y-1.5 text-sm leading-5 text-slate-700"
+                                                    class="space-y-1.5 text-sm leading-5 text-zx-text"
                                                 >
                                                     <template
                                                         v-for="(
@@ -458,13 +440,13 @@ watch(
                                                                 block.kind ===
                                                                 'video'
                                                             "
-                                                            class="text-slate-400"
+                                                            class="text-zx-text-subtle"
                                                         >
                                                             [视频]
                                                         </p>
                                                         <p
                                                             v-else
-                                                            class="text-slate-400"
+                                                            class="text-zx-text-subtle"
                                                         >
                                                             [{{ block.kind }}]
                                                         </p>
@@ -472,7 +454,7 @@ watch(
 
                                                     <!-- 详细时间：放消息下方 -->
                                                     <p
-                                                        class="pt-0.5 text-[11px] text-slate-300"
+                                                        class="pt-0.5 text-[11px] text-zx-text-subtle"
                                                     >
                                                         {{
                                                             formatTime(
@@ -505,11 +487,11 @@ watch(
                             <div
                                 class="flex items-center justify-between pb-3"
                             >
-                                <p class="text-sm font-bold text-slate-700">
+                                <p class="text-sm font-bold text-zx-text">
                                     筛选条件
                                 </p>
                                 <button
-                                    class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                                    class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text-muted"
                                     type="button"
                                     @click="filterOpen = false"
                                 >
@@ -518,7 +500,7 @@ watch(
                             </div>
 
                             <p
-                                class="pb-1.5 text-xs font-medium text-slate-500"
+                                class="pb-1.5 text-xs font-medium text-zx-text-muted"
                             >
                                 发送日期
                             </p>
@@ -526,16 +508,16 @@ watch(
 
                             <template v-if="contactType === 'group'">
                                 <p
-                                    class="pb-1.5 pt-4 text-xs font-medium text-slate-500"
+                                    class="pb-1.5 pt-4 text-xs font-medium text-zx-text-muted"
                                 >
                                     发送人
                                 </p>
                                 <div class="flex items-center gap-1.5">
-                                    <ZXDropdown
+                                    <ZXSelect
                                         v-model="filterMember"
                                         :options="memberFilterOptions"
                                         placeholder="选择发送人"
-                                        trigger-class="min-w-0 flex-1 justify-between gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-slate-300 focus-within:bg-white"
+                                        trigger-class="min-w-0 flex-1 justify-between gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-zx-text-muted transition-colors hover:border-slate-300 focus-within:bg-white"
                                     >
                                         <template
                                             #option="{
@@ -563,10 +545,10 @@ watch(
                                                 }}</span>
                                             </span>
                                         </template>
-                                    </ZXDropdown>
+                                    </ZXSelect>
                                     <button
                                         v-if="filterMember"
-                                        class="btn-touch flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100"
+                                        class="btn-touch flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100"
                                         :class="
                                             pinnedMembers.includes(filterMember)
                                                 ? 'text-zx-primary'
@@ -592,7 +574,7 @@ watch(
                                     </button>
                                 </div>
                                 <p
-                                    class="pt-2 text-[11px] leading-relaxed text-slate-400"
+                                    class="pt-2 text-[11px] leading-relaxed text-zx-text-subtle"
                                 >
                                     选中发送人后点图钉可置顶，置顶的会排在下拉列表最前面
                                 </p>

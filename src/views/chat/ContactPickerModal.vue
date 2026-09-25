@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { X, Search, Users, UserRound } from "lucide-vue-next";
+import { X, Users, UserRound } from "lucide-vue-next";
 import { storeToRefs } from "pinia";
 import { useChatStore } from "@/store/chat.ts";
 import { modalJelly } from "@/composables/useGsapTransition";
 import ZxAvatar from "@/components/zxcomponent/ZxAvatar.vue";
+import ZXInput from "@/components/zxcomponent/ZXInput.vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 
 export interface ForwardTarget {
     type: "friend" | "group";
@@ -84,26 +86,19 @@ const onPick = (r: Row) => {
                     </div>
 
                     <div class="px-4 pb-2">
-                        <div class="relative">
-                            <Search
-                                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--zx-color-text-muted)]"
-                            />
-                            <input
-                                v-model="keyword"
-                                type="text"
-                                placeholder="搜索联系人 / 群"
-                                class="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-[var(--zx-color-text)] placeholder:text-[var(--zx-color-text-subtle)] focus:bg-white focus:outline-none"
-                            />
-                        </div>
+                        <ZXInput
+                            v-model="keyword"
+                            type="search"
+                            placeholder="搜索联系人 / 群"
+                        />
                     </div>
 
                     <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-                        <div
+                        <ZxEmptyState
                             v-if="rows.length === 0"
-                            class="flex h-32 items-center justify-center text-sm text-[var(--zx-color-text-muted)]"
-                        >
-                            没有匹配的联系人
-                        </div>
+                            size="sm"
+                            text="没有匹配的联系人"
+                        />
                         <button
                             v-for="r in rows"
                             :key="r.type + r.id"
