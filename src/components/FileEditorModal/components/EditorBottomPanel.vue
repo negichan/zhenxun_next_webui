@@ -100,7 +100,7 @@ const onDragStart = (e: PointerEvent) => {
 
         <!-- 标签栏 -->
         <div
-            class="flex h-8 flex-shrink-0 items-stretch border-b border-slate-200 bg-slate-50/80 select-none"
+            class="flex h-8 flex-shrink-0 items-stretch border-b border-slate-200 bg-white select-none"
         >
             <div class="flex min-w-0 flex-1 items-stretch overflow-x-auto">
                 <button
@@ -125,7 +125,7 @@ const onDragStart = (e: PointerEvent) => {
             <div class="flex items-center gap-0.5 pr-1">
                 <button
                     type="button"
-                    class="btn-touch flex h-6 w-6 cursor-pointer items-center justify-center rounded text-zx-text-subtle transition-colors hover:bg-slate-200/80 hover:text-zx-text"
+                    class="btn-touch flex h-6 w-6 cursor-pointer items-center justify-center rounded text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text"
                     :title="maximized ? '还原高度' : '最大化'"
                     @click="toggleMaximize"
                 >
@@ -134,7 +134,7 @@ const onDragStart = (e: PointerEvent) => {
                 </button>
                 <button
                     type="button"
-                    class="btn-touch flex h-6 w-6 cursor-pointer items-center justify-center rounded text-zx-text-subtle transition-colors hover:bg-slate-200/80 hover:text-zx-text"
+                    class="btn-touch flex h-6 w-6 cursor-pointer items-center justify-center rounded text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text"
                     title="关闭面板"
                     @click="emit('close')"
                 >
@@ -150,12 +150,12 @@ const onDragStart = (e: PointerEvent) => {
                 :wb="wb"
                 class="h-full"
             />
-            <div
+            <ZxEmptyState
                 v-else
-                class="flex h-full items-center justify-center text-xs text-zx-text-subtle"
-            >
-                暂无输出
-            </div>
+                text="暂无输出"
+                size="sm"
+                class="h-full justify-center"
+            />
         </div>
     </div>
 </template>

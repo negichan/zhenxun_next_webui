@@ -183,7 +183,7 @@
                 class="group relative z-20 w-1 -ml-0.5 flex-shrink-0 cursor-col-resize select-none bg-slate-200 hover:bg-zx-primary active:bg-zx-primary transition-colors"
                 :class="{ 'bg-zx-primary': isDraggingPreview }"
                 title="拖拽调节预览栏宽度，双击居中"
-                @mousedown.prevent="startDragPreview"
+                @pointerdown.prevent="startDragPreview"
                 @dblclick="resetPreviewRatio"
             >
                 <div class="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize"></div>
@@ -205,7 +205,7 @@
         </div>
 
         <!-- 状态栏：光标位置 / 字符数 / 换行符 / 编码 / 语言 -->
-        <div class="editor-statusbar">
+        <div v-if="!hideStatusbar" class="editor-statusbar">
             <span>行 {{ cursorLine }}，列 {{ cursorCol }}</span>
             <span>{{ charCount.toLocaleString() }} 字符</span>
             <span class="flex-1"></span>
@@ -255,8 +255,11 @@ interface Props {
     readonly?: boolean;
     loading?: boolean;
     hideToolbar?: boolean;
+    hideStatusbar?: boolean;
     /** 文件实际编码（读取接口探测），保存时随写回参数传给后端 */
     encoding?: string;
+    /** 编辑器字号大小（默认 14） */
+    fontSize?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -266,7 +269,9 @@ const props = withDefaults(defineProps<Props>(), {
     readonly: false,
     loading: false,
     hideToolbar: false,
+    hideStatusbar: false,
     encoding: "utf-8",
+    fontSize: 14,
 });
 
 const emit = defineEmits<{
@@ -573,8 +578,8 @@ onMounted(async () => {
             },
             automaticLayout: true,
             fontFamily: '"JetBrains Mono", "Cascadia Mono", Consolas, monospace',
-            fontSize: 14,
-            lineHeight: 22,
+            fontSize: props.fontSize,
+            lineHeight: Math.round(props.fontSize * 1.55),
             fontLigatures: false,
             minimap: { enabled: false },
             wordWrap: wordWrap.value ? "on" : "off",
@@ -724,7 +729,7 @@ const resetPreviewRatio = () => {
     });
 };
 
-const startDragPreview = (e: MouseEvent) => {
+const startDragPreview = (e: PointerEvent) => {
     if (!editorSplitRef.value) return;
     isDraggingPreview.value = true;
     document.body.style.cursor = "col-resize";
@@ -735,7 +740,7 @@ const startDragPreview = (e: MouseEvent) => {
     const startR = previewRatio.value;
     let rafId: number | null = null;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onPointerMove = (moveEvent: PointerEvent) => {
         const delta = moveEvent.clientX - startX;
         const deltaRatio = (delta / containerW) * 100;
         const newRatio = startR - deltaRatio;
@@ -747,12 +752,13 @@ const startDragPreview = (e: MouseEvent) => {
         });
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = () => {
         isDraggingPreview.value = false;
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerUp);
         cleanupPreviewDrag = null;
         if (rafId) cancelAnimationFrame(rafId);
         localStorage.setItem("zx-editor-preview-ratio", String(previewRatio.value));
@@ -765,13 +771,15 @@ const startDragPreview = (e: MouseEvent) => {
         isDraggingPreview.value = false;
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerUp);
         if (rafId) cancelAnimationFrame(rafId);
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
 };
 
 // 文件切换时回到编辑视图
@@ -804,6 +812,17 @@ watch(
     () => [props.language, props.path],
     () => {
         selectedLanguage.value = detectLanguage();
+    },
+);
+
+watch(
+    () => props.fontSize,
+    (newSize) => {
+        if (!monacoEditor) return;
+        monacoEditor.updateOptions({
+            fontSize: newSize,
+            lineHeight: Math.round(newSize * 1.55),
+        });
     },
 );
 

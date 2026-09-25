@@ -77,8 +77,8 @@ import EditorRightPanel from "./components/EditorRightPanel.vue";
 import { useWorkbench } from "./useWorkbench";
 import { getFileIcon } from "./fileIcons";
 import { startPointerDrag } from "./pointerDrag";
-import { ZXDropdown } from "@/components/zxcomponent/ZXDropdown";
-import type { ZXDropdownOption } from "@/components/zxcomponent/ZXDropdown";
+import { ZXDropdownMenu } from "@/components/zxcomponent/ZXDropdownMenu";
+import type { ZXDropdownMenuOption as ZXDropdownOption } from "@/components/zxcomponent/ZXDropdownMenu";
 import type { SidebarPanel } from "./types";
 import ZxButton from "components/zxcomponent/ZxButton.vue";
 
@@ -503,7 +503,7 @@ const applyFlexStyle = (el: HTMLElement | null | undefined, w: number) => {
     el.style.flex = `${w} 0 0%`;
 };
 
-const startColumnDragAt = (colIndex: number, e: MouseEvent) => {
+const startColumnDragAt = (colIndex: number, e: PointerEvent) => {
     const root = editorContainerRef.value;
     if (!root) return;
     const n = wb.columnWeights.value.length;
@@ -524,7 +524,7 @@ const startColumnDragAt = (colIndex: number, e: MouseEvent) => {
     let nextB = wB;
     let rafId: number | null = null;
 
-    const onMove = (ev: MouseEvent) => {
+    const onMove = (ev: PointerEvent) => {
         const deltaPx = ev.clientX - startClientX;
         const deltaRatio = (deltaPx / containerW) * startSum;
         nextA = Math.max(0.08, Math.min(startSum - 0.08, wA + deltaRatio));
@@ -539,8 +539,9 @@ const startColumnDragAt = (colIndex: number, e: MouseEvent) => {
     const onUp = () => {
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
         if (rafId) cancelAnimationFrame(rafId);
         const weights = [...wb.columnWeights.value];
         weights[colIndex - 1] = nextA;
@@ -549,11 +550,12 @@ const startColumnDragAt = (colIndex: number, e: MouseEvent) => {
         nextTick(() => wb.layoutAll());
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
 };
 
-const startGroupRowDrag = (colIndex: number, rowIndex: number, e: MouseEvent) => {
+const startGroupRowDrag = (colIndex: number, rowIndex: number, e: PointerEvent) => {
     const root = editorContainerRef.value;
     const col = wb.layoutColumns.value[colIndex];
     if (!root || !col || rowIndex < 1 || rowIndex >= col.length) return;
@@ -577,7 +579,7 @@ const startGroupRowDrag = (colIndex: number, rowIndex: number, e: MouseEvent) =>
     let nextL = wL;
     let rafId: number | null = null;
 
-    const onMove = (ev: MouseEvent) => {
+    const onMove = (ev: PointerEvent) => {
         const deltaPx = ev.clientY - startClientY;
         const deltaRatio = (deltaPx / containerH) * startSum;
         nextU = Math.max(0.08, Math.min(startSum - 0.08, wU + deltaRatio));
@@ -592,16 +594,18 @@ const startGroupRowDrag = (colIndex: number, rowIndex: number, e: MouseEvent) =>
     const onUp = () => {
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
         if (rafId) cancelAnimationFrame(rafId);
         wb.groupWeights[upperId] = nextU;
         wb.groupWeights[lowerId] = nextL;
         nextTick(() => wb.layoutAll());
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
 };
 
 const sidebarRef = ref<InstanceType<typeof EditorSidebar> | null>(null);
@@ -1375,13 +1379,13 @@ onBeforeUnmount(() => {
 
                     <!-- 窗口标题栏：左侧侧栏开关 / 居中标题 / 右侧全屏与关闭 -->
                     <header
-                        class="flex h-9 flex-shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100/70 pl-1 pr-1.5 select-none"
+                        class="flex h-9 flex-shrink-0 items-center justify-between border-b border-slate-200 bg-white pl-1 pr-1.5 select-none"
                         :class="isFullscreen ? '' : isDraggingWindow ? 'cursor-grabbing' : 'cursor-grab'"
                         @pointerdown="onHeaderMouseDown"
                         @dblclick="onHeaderDblClick"
                     >
-                        <div class="flex flex-shrink-0 items-center">
-                            <ZXDropdown
+                        <div class="flex flex-shrink-0 items-center gap-1">
+                            <ZXDropdownMenu
                                 v-for="menu in menus"
                                 :key="menu.id"
                                 :model-value="'__none'"
@@ -1389,13 +1393,14 @@ onBeforeUnmount(() => {
                                 :options="menu.options"
                                 compact
                                 panel-class="min-w-56"
-                                trigger-class="flex h-7 cursor-pointer items-center rounded-md px-2.5 text-xs font-medium text-zx-text-muted transition-colors hover:bg-slate-100"
+                                trigger-class="flex h-7 cursor-pointer items-center rounded-lg px-2.5 text-xs font-medium text-zx-text transition-colors hover:bg-zx-primary-soft hover:text-zx-primary"
+                                active-trigger-class="bg-zx-primary-soft text-zx-primary font-semibold"
                                 @update:model-value="onMenu"
                             >
                                 <template #trigger>
                                     <span>{{ menu.label }}</span>
                                 </template>
-                            </ZXDropdown>
+                            </ZXDropdownMenu>
                         </div>
 
                         <div class="flex flex-shrink-0 items-center gap-0.5">
@@ -1515,7 +1520,7 @@ onBeforeUnmount(() => {
                                     v-if="ci > 0"
                                     class="relative z-20 w-1 flex-shrink-0 cursor-col-resize select-none bg-slate-200"
                                     title="拖拽调节列宽"
-                                    @mousedown.prevent="startColumnDragAt(ci, $event)"
+                                    @pointerdown.prevent="startColumnDragAt(ci, $event)"
                                 >
                                     <div
                                         class="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize"
@@ -1536,7 +1541,7 @@ onBeforeUnmount(() => {
                                             v-if="gi > 0"
                                             class="relative z-20 h-1 flex-shrink-0 cursor-row-resize select-none bg-slate-200"
                                             title="拖拽调节组高"
-                                            @mousedown.prevent="
+                                            @pointerdown.prevent="
                                                 startGroupRowDrag(ci, gi, $event)
                                             "
                                         >

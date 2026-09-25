@@ -192,7 +192,7 @@ const resetPreviewRatio = () => {
     });
 };
 
-const startDragPreview = (e: MouseEvent) => {
+const startDragPreview = (e: PointerEvent) => {
     if (!editorSplitRef.value) return;
     isDraggingPreview.value = true;
     document.body.style.cursor = "col-resize";
@@ -203,7 +203,7 @@ const startDragPreview = (e: MouseEvent) => {
     const startR = previewRatio.value;
     let rafId: number | null = null;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onPointerMove = (moveEvent: PointerEvent) => {
         const delta = moveEvent.clientX - startX;
         const deltaRatio = (delta / containerW) * 100;
         const newRatio = startR - deltaRatio;
@@ -215,12 +215,13 @@ const startDragPreview = (e: MouseEvent) => {
         });
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = () => {
         isDraggingPreview.value = false;
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerUp);
         cleanupPreviewDrag = null;
         if (rafId) cancelAnimationFrame(rafId);
         localStorage.setItem(`zx-editor-preview-ratio-${props.group}`, String(previewRatio.value));
@@ -229,9 +230,10 @@ const startDragPreview = (e: MouseEvent) => {
         });
     };
 
-    cleanupPreviewDrag = onMouseUp;
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    cleanupPreviewDrag = onPointerUp;
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
 };
 
 onMounted(() => {
@@ -258,7 +260,7 @@ const onPaneFocus = () => {
 <template>
     <div
         class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden bg-white"
-        @mousedown="onPaneFocus"
+        @pointerdown="onPaneFocus"
     >
         <EditorTabBar
             :wb="wb"
@@ -316,7 +318,7 @@ const onPaneFocus = () => {
                     v-if="isMarkdownText && mdMode === 'split'"
                     class="group relative z-20 w-1 -ml-0.5 flex-shrink-0 cursor-col-resize select-none bg-slate-200"
                     title="拖拽调节预览栏宽度，双击居中"
-                    @mousedown.prevent="startDragPreview"
+                    @pointerdown.prevent="startDragPreview"
                     @dblclick="resetPreviewRatio"
                 >
                     <div class="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize"></div>

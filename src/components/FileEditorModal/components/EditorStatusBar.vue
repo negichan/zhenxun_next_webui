@@ -7,8 +7,7 @@ import {
     Search,
     Table2,
 } from "lucide-vue-next";
-import { ZXDropdown } from "@/components/zxcomponent/ZXDropdown";
-import type { ZXDropdownOption } from "@/components/zxcomponent/ZXDropdown";
+import { ZXSelect, type ZXSelectOption } from "@/components/zxcomponent/ZXSelect";
 import { zxDDPop } from "@/composables/useGsapTransition";
 import { scrollElementInContainer } from "@/composables/scrollInView";
 import { LANGUAGE_OPTIONS } from "../useWorkbench";
@@ -75,17 +74,17 @@ const eolLabel = computed(() =>
     activeTab.value?.eol === "crlf" ? "CRLF" : "LF",
 );
 
-const encodingOptions: ZXDropdownOption[] = [
+const encodingOptions: ZXSelectOption[] = [
     { label: "UTF-8", value: "utf-8" },
     { label: "GBK", value: "gbk" },
 ];
 
-const eolOptions: ZXDropdownOption[] = [
+const eolOptions: ZXSelectOption[] = [
     { label: "LF", value: "lf" },
     { label: "CRLF", value: "crlf" },
 ];
 
-const tabSizeOptions: ZXDropdownOption[] = [
+const tabSizeOptions: ZXSelectOption[] = [
     { label: "2 个空格", value: "2" },
     { label: "4 个空格", value: "4" },
     { label: "8 个空格", value: "8" },
@@ -396,7 +395,7 @@ onUnmounted(() => {
                 </span>
 
                 <template v-if="activeTab">
-                    <ZXDropdown
+                    <ZXSelect
                         :model-value="String(wb.tabSize.value)"
                         :options="tabSizeOptions"
                         compact
@@ -406,9 +405,9 @@ onUnmounted(() => {
                         <template #trigger>
                             <span>空格: {{ wb.tabSize.value }}</span>
                         </template>
-                    </ZXDropdown>
+                    </ZXSelect>
 
-                    <ZXDropdown
+                    <ZXSelect
                         :model-value="activeTab.eol"
                         :options="eolOptions"
                         compact
@@ -418,9 +417,9 @@ onUnmounted(() => {
                         <template #trigger="{ label }">
                             <span>{{ label }}</span>
                         </template>
-                    </ZXDropdown>
+                    </ZXSelect>
 
-                    <ZXDropdown
+                    <ZXSelect
                         :model-value="activeTab.encoding"
                         :options="encodingOptions"
                         compact
@@ -430,7 +429,7 @@ onUnmounted(() => {
                         <template #trigger="{ label }">
                             <span>{{ label }}</span>
                         </template>
-                    </ZXDropdown>
+                    </ZXSelect>
 
                     <button
                         ref="langTriggerRef"
@@ -472,7 +471,7 @@ onUnmounted(() => {
                 <!-- 顶部搜索框 -->
                 <div class="border-b border-slate-100 p-1.5">
                     <div
-                        class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 transition-colors focus-within:border-zx-primary focus-within:bg-white"
+                        class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 transition-colors focus-within:border-zx-primary"
                     >
                         <Search class="h-3 w-3 flex-shrink-0 text-zx-text-subtle" />
                         <input

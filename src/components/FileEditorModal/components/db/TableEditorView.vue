@@ -10,10 +10,6 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import {
     CheckCircle2,
     ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     Copy,
     CornerLeftUp,
     CornerRightDown,
@@ -1500,20 +1496,8 @@ const openExportMenu = (e: MouseEvent) => {
     });
 };
 
-const gotoFirstPage = () => {
-    page.value = 1;
-    loadTable();
-};
-const gotoPrevPage = () => {
-    page.value = Math.max(1, page.value - 1);
-    loadTable();
-};
-const gotoNextPage = () => {
-    page.value = Math.min(totalPages.value, page.value + 1);
-    loadTable();
-};
-const gotoLastPage = () => {
-    page.value = totalPages.value;
+const handlePageChange = (p: number) => {
+    page.value = p;
     loadTable();
 };
 
@@ -1666,7 +1650,7 @@ onMounted(loadTable);
             </button>
             <button
                 type="button"
-                class="btn-touch flex h-7 items-center rounded-md px-2 text-xs text-zx-text-muted transition-colors hover:bg-red-50 hover:text-red-600 disabled:pointer-events-none disabled:opacity-35"
+                class="btn-touch flex h-7 items-center rounded-md px-2 text-xs text-zx-text-muted transition-colors hover:bg-zx-danger-soft hover:text-zx-danger disabled:pointer-events-none disabled:opacity-35"
                 :disabled="!lastRowCtx || !pkName"
                 title="删除/恢复当前行"
                 @click="markDeleteSelected"
@@ -1676,63 +1660,13 @@ onMounted(loadTable);
 
             <span class="mx-0.5 h-4 w-px bg-slate-300/80" />
 
-            <!-- 分页 |< < > >| -->
-            <button
-                type="button"
-                :class="tbCls"
-                :disabled="page <= 1"
-                title="第一页"
-                @click="gotoFirstPage"
-            >
-                <ChevronsLeft class="h-3.5 w-3.5" />
-            </button>
-            <button
-                type="button"
-                :class="tbCls"
-                :disabled="page <= 1"
-                title="上一页"
-                @click="gotoPrevPage"
-            >
-                <ChevronLeft class="h-3.5 w-3.5" />
-            </button>
-            <input
-                :value="page"
-                class="mx-0.5 h-6 w-9 rounded-md border border-slate-200 bg-white text-center font-mono text-[11px] tabular-nums text-zx-text outline-none focus:border-zx-primary"
-                title="当前页"
-                @change="
-                    page = Math.max(
-                        1,
-                        Math.min(
-                            totalPages,
-                            Number(
-                                ($event.target as HTMLInputElement).value,
-                            ) || 1,
-                        ),
-                    );
-                    loadTable();
-                "
+            <!-- 分页（ZxPagination mini 档） -->
+            <ZxPagination
+                mini
+                :page="page"
+                :total-pages="totalPages"
+                @update:model-value="handlePageChange"
             />
-            <button
-                type="button"
-                :class="tbCls"
-                :disabled="page >= totalPages"
-                title="下一页"
-                @click="gotoNextPage"
-            >
-                <ChevronRight class="h-3.5 w-3.5" />
-            </button>
-            <button
-                type="button"
-                :class="tbCls"
-                :disabled="page >= totalPages"
-                title="最后一页"
-                @click="gotoLastPage"
-            >
-                <ChevronsRight class="h-3.5 w-3.5" />
-            </button>
-            <span class="ml-1 tabular-nums text-[11px] text-zx-text-subtle">
-                / {{ totalPages }}
-            </span>
 
             <span class="mx-0.5 h-4 w-px bg-slate-300/80" />
 
@@ -1917,7 +1851,7 @@ onMounted(loadTable);
                                     >{{ colTypeBadge(col).text }}</span
                                 >
                                 <span
-                                    class="font-semibold text-slate-800"
+                                    class="font-semibold text-zx-text-strong"
                                     :title="col.name"
                                     >{{ col.name }}</span
                                 >
@@ -2190,7 +2124,7 @@ onMounted(loadTable);
                             :class="
                                 boolDraft === opt.v
                                     ? 'bg-zx-primary-tint/50 text-zx-primary'
-                                    : 'text-slate-700'
+                                    : 'text-zx-text'
                             "
                             @click="pickBool(opt.v)"
                         >
