@@ -6,13 +6,11 @@ import {
     Check,
     ChevronRight,
     CircleCheck,
-    Clock,
     Copy,
     CornerUpRight,
     Download,
     FileText,
     FolderDown,
-    ImageIcon,
     Link2,
     MapPin,
     MessageSquare,
@@ -20,8 +18,6 @@ import {
     Mic,
     Music,
     PanelRight,
-    Send,
-    Smile,
     Video,
     X,
 } from "lucide-vue-next";
@@ -49,13 +45,9 @@ import {
     menuSep,
     type ZXContextMenuItem,
 } from "@/components/zxcomponent/ContextMenu";
-import StickerPicker from "@/views/chat/StickerPicker.vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import FaceImg from "@/views/chat/FaceImg.vue";
-import type { StickerItem } from "@/utils/stickers";
-import { qqntLocalFallback } from "@/utils/stickers-qqnt";
-import { faceCdnUrl } from "@/utils/qq-face";
-import { useVoiceRecorder } from "@/composables/useVoiceRecorder";
-import { useCustomCaret } from "@/composables/useCustomCaret";
+import ChatComposer, { type OutgoingPart } from "@/views/chat/ChatComposer.vue";
 import type {
     ChatMessage,
     ChatMessagePart,
@@ -499,7 +491,7 @@ const doForward = async (target: ForwardTarget, mode: ForwardMode) => {
     const uid = target.type === "friend" ? target.id : null;
     const botId = bot.self_id;
     const botAvatar =
-        bot.ava_url || `http://q1.qlogo.cn/g?b=qq&nk=${bot.self_id}&s=160`;
+        bot.ava_url || `https://q1.qlogo.cn/g?b=qq&nk=${bot.self_id}&s=160`;
     const botArg = { self_id: botId, name: String(bot.nickname ?? "") };
 
     try {
@@ -587,8 +579,6 @@ const onMessagesScroll = () => {
     showScrollBottom.value = !isNearBottom();
 };
 
-// 文件输入 ref
-const imageInput = ref<HTMLInputElement | null>(null);
 
 // 获取当前选中联系人的详细信息
 const currentContactInfo = computed(() => {
@@ -619,667 +609,9 @@ const currentContactInfo = computed(() => {
     return null;
 });
 
-// 将文件转换为 base64
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
 
-// ==================== 富文本输入框（图片内联）+ 语音附件 ====================
-
-// 富文本编辑器（contenteditable），图片以 <img> 内联在文字之间
-const editorRef = ref<HTMLElement | null>(null);
-/** 编辑器里内联图片的 dataUrl -> 纯 base64 缓存 */
-const imageBase64Map = new Map<string, string>();
-
-// 自绘光标：行内图片撑高行框时原生光标会变高，改画恒定字高的光标
-useCustomCaret(editorRef);
-
-/** 待发送语音（录音后挂在输入框上方） */
-interface VoiceItem {
-    id: number;
-    dataUrl: string;
-    base64: string;
-    duration: number;
-}
-
-const voiceItems = ref<VoiceItem[]>([]);
-let voiceSeq = 0;
-
-const removeVoiceItem = (id: number) => {
-    voiceItems.value = voiceItems.value.filter((item) => item.id !== id);
-};
-
-/** 在光标处插入内联图片 */
-// 编辑器内联表情的相对尺寸（动态插入的 img 拿不到 scoped 类，用内联样式；随字号自适应）
-const EDITOR_STICKER_STYLE: Record<StickerKind, string> = {
-    emoji: "width:1.3em;height:1.3em;vertical-align:middle;object-fit:contain;",
-    sticker:
-        "max-height:6em;max-width:100%;width:auto;height:auto;object-fit:contain;",
-};
-
-const insertInlineImage = (dataUrl: string, kind?: StickerKind) => {
-    const editor = editorRef.value;
-    if (!editor) return;
-    editor.focus();
-    imageBase64Map.set(dataUrl, dataUrl.split(",")[1] ?? "");
-    if (!kind) {
-        let inserted = false;
-        try {
-            inserted = document.execCommand("insertImage", false, dataUrl);
-        } catch {
-            inserted = false;
-        }
-        if (!inserted) {
-            const img = document.createElement("img");
-            img.src = dataUrl;
-            editor.appendChild(img);
-        }
-        return;
-    }
-    // 表情：手动插入以便打 data-sticker 标记与相对尺寸预览
-    const img = document.createElement("img");
-    img.src = dataUrl;
-    img.setAttribute("data-sticker", kind);
-    img.style.cssText = EDITOR_STICKER_STYLE[kind];
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(img);
-        range.setStartAfter(img);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-    } else {
-        editor.appendChild(img);
-    }
-};
-
-// 默认小表情：作为 face token 插入编辑器（data-face 记录 id，发送时转 face 段）
-const insertFaceToken = (id: string) => {
-    const editor = editorRef.value;
-    if (!editor) return;
-    editor.focus();
-    const img = document.createElement("img");
-    img.src = faceCdnUrl(id);
-    img.setAttribute("data-face", id);
-    img.style.cssText =
-        "width:1.3em;height:1.3em;vertical-align:middle;object-fit:contain;";
-    img.addEventListener("error", () => {
-        img.src = `/zhenxun/api/v1/sticker/qq/${id}.png`;
-    });
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(img);
-        range.setStartAfter(img);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-    } else {
-        editor.appendChild(img);
-    }
-};
-
-// ==================== @ 群成员（仅群聊） ====================
-const atOpen = ref(false);
-const atRef = ref<HTMLElement | null>(null);
-const atKeyword = ref("");
-const mentionActive = ref(false); // 由“输入 @”触发的就地提及模式
-const mentionIndex = ref(0); // 键盘高亮项
-const mentionPos = ref({ x: 0, y: 0 }); // 弹层锚点（光标处）
-const mentionListRef = ref<HTMLElement | null>(null);
-
-// 键盘切换高亮时，把该项滚进可视区
-watch(mentionIndex, () => {
-    nextTick(() => {
-        mentionListRef.value
-            ?.querySelectorAll("button")[mentionIndex.value]
-            ?.scrollIntoView({ block: "nearest" });
-    });
-});
-const groupMembers = ref<GroupMember[]>([]);
-const membersLoading = ref(false);
-const membersLoadedGroupId = ref<string>("");
-
-onClickOutside(atRef, () => {
-    atOpen.value = false;
-});
-
-const loadGroupMembers = async () => {
-    const gid = selectedId.value;
-    if (selectedContact.value !== "group" || !gid) return;
-    if (membersLoadedGroupId.value === gid) return;
-    membersLoading.value = true;
-    try {
-        const bot = getCurrentBot();
-        const res = await manageApi.getGroupMembers(gid, bot?.self_id ?? undefined);
-        if (res?.success && res.data) {
-            groupMembers.value = res.data;
-            membersLoadedGroupId.value = gid;
-        }
-    } catch (e) {
-        console.error("加载群成员失败:", e);
-    } finally {
-        membersLoading.value = false;
-    }
-};
-
-// 读取光标前是否正处于 “@query” 输入态（QQ 式就地提及）
-const getTrailingMentionQuery = (): string | null => {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return null;
-    const range = sel.getRangeAt(0);
-    if (!range.collapsed) return null;
-    const node = range.startContainer;
-    if (node.nodeType !== Node.TEXT_NODE) return null;
-    const before = (node.textContent ?? "").slice(0, range.startOffset);
-    const m = /@([^\s@]*)$/.exec(before);
-    return m ? m[1] : null;
-};
-
-// 把弹层锚到光标处（取当前 range 的矩形）
-const updateMentionPos = () => {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return;
-    const rect = sel.getRangeAt(0).getBoundingClientRect();
-    if (rect && (rect.left || rect.top)) {
-        mentionPos.value = { x: rect.left, y: rect.top };
-    } else {
-        const box = editorRef.value?.getBoundingClientRect();
-        if (box) mentionPos.value = { x: box.left + 12, y: box.top };
-    }
-};
-
-// 弹层左边（贴光标、且不超出视口右侧）
-const mentionLeft = computed(() => {
-    const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
-    return Math.max(8, Math.min(mentionPos.value.x, vw - 248));
-});
-
-// 删除光标前的 “@query” 文本（选成员时用 @片 替换）
-const deleteTrailingMention = () => {
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return;
-    const range = sel.getRangeAt(0);
-    const node = range.startContainer;
-    if (node.nodeType !== Node.TEXT_NODE) return;
-    const offset = range.startOffset;
-    const before = (node.textContent ?? "").slice(0, offset);
-    const m = /@[^\s@]*$/.exec(before);
-    if (!m) return;
-    const del = document.createRange();
-    del.setStart(node, offset - m[0].length);
-    del.setEnd(node, offset);
-    del.deleteContents();
-    del.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(del);
-};
-
-const onEditorInput = async () => {
-    const q = getTrailingMentionQuery();
-    if (q !== null && selectedContact.value === "group") {
-        atKeyword.value = q;
-        mentionActive.value = true;
-        mentionIndex.value = 0;
-        updateMentionPos();
-        if (!atOpen.value) {
-            atOpen.value = true;
-            await loadGroupMembers();
-        }
-    } else if (mentionActive.value) {
-        mentionActive.value = false;
-        atOpen.value = false;
-    }
-};
-
-const closeMention = () => {
-    if (atOpen.value || mentionActive.value) {
-        atOpen.value = false;
-        mentionActive.value = false;
-    }
-};
-
-// rAF 合并连按：原生方向键重复可能快过渲染，这里每帧只推进一次，避免高亮错位/闪烁
-let mentionNavDelta = 0;
-let mentionNavScheduled = false;
-const stepMention = (delta: number) => {
-    mentionNavDelta += delta;
-    if (mentionNavScheduled) return;
-    mentionNavScheduled = true;
-    requestAnimationFrame(() => {
-        mentionNavScheduled = false;
-        const d = mentionNavDelta;
-        mentionNavDelta = 0;
-        const len = atList.value.length;
-        if (len > 0) {
-            mentionIndex.value = Math.min(
-                Math.max(mentionIndex.value + d, 0),
-                len - 1,
-            );
-        }
-    });
-};
-
-// 提及弹层打开时接管方向键/回车/Esc；否则回车发送
-const onEditorKeydown = (e: KeyboardEvent) => {
-    const len = atList.value.length;
-    if (atOpen.value && len > 0) {
-        if (e.key === "ArrowDown") {
-            e.preventDefault();
-            stepMention(1);
-            return;
-        }
-        if (e.key === "ArrowUp") {
-            e.preventDefault();
-            stepMention(-1);
-            return;
-        }
-        if (e.key === "Enter" && !e.isComposing) {
-            e.preventDefault();
-            pickAt(atList.value[mentionIndex.value]);
-            return;
-        }
-        if (e.key === "Escape") {
-            e.preventDefault();
-            closeMention();
-            return;
-        }
-    }
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
-        e.preventDefault();
-        handleSendMessage();
-    }
-};
-
-const displayName = (m: GroupMember) => m.remark || m.nickname || m.user_id;
-
-const atList = computed(() => {
-    const kw = atKeyword.value.trim().toLowerCase();
-    return groupMembers.value
-        .filter(
-            (m) =>
-                !kw ||
-                displayName(m).toLowerCase().includes(kw) ||
-                m.user_id.includes(kw),
-        )
-        .slice(0, 60);
-});
-
-// 插入不可编辑的 @ token（contenteditable=false），发送时转 at 段
-const insertAtToken = (id: string, name: string) => {
-    const editor = editorRef.value;
-    if (!editor) return;
-    editor.focus();
-    const chip = document.createElement("span");
-    chip.setAttribute("data-at", id);
-    chip.setAttribute("data-at-name", name);
-    chip.setAttribute("contenteditable", "false");
-    chip.className =
-        "mx-0.5 inline-block select-none rounded bg-zx-primary-soft px-1 font-medium text-zx-primary";
-    chip.textContent = `@${name}`;
-    const space = document.createTextNode(" ");
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(space);
-        range.insertNode(chip);
-        range.setStartAfter(space);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-    } else {
-        editor.appendChild(chip);
-        editor.appendChild(space);
-    }
-    atOpen.value = false;
-};
-
-const pickAt = (m: GroupMember) => {
-    if (mentionActive.value) deleteTrailingMention();
-    insertAtToken(m.user_id, displayName(m));
-    mentionActive.value = false;
-};
-
-const stickerBoxClass = (k?: StickerKind) =>
-    k === "emoji"
-        ? "inline-flex items-center text-xs sm:text-sm"
-        : k === "sticker"
-        ? "inline-block"
-        : "image-message max-w-[min(70%,20rem)]";
-const stickerImgClass = (k?: StickerKind) =>
-    k === "emoji"
-        ? "h-[1.3em] w-[1.3em] object-contain align-middle"
-        : k === "sticker"
-        ? "max-h-[12em] max-w-full object-contain"
-        : "max-w-full align-top";
-const stickerPhClass = (k?: StickerKind) =>
-    k === "emoji"
-        ? "h-[1.3em] w-[1.3em]"
-        : k === "sticker"
-        ? "h-[8em] w-[8em]"
-        : "h-32 w-48";
-
-/** 选择/粘贴/拖拽来的图片统一从这里进编辑器（类型/大小校验） */
-const enqueueImages = async (files: File[]) => {
-    for (const file of files) {
-        if (!file.type.startsWith("image/")) {
-            ZXNotification({
-                title: "提示",
-                message: "只能选择图片文件哦～",
-                type: "info",
-                position: "top-right",
-            });
-            continue;
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            ZXNotification({
-                title: "提示",
-                message: "图片大小不能超过 10MB 哦～",
-                type: "info",
-                position: "top-right",
-            });
-            continue;
-        }
-        insertInlineImage(await fileToBase64(file));
-    }
-};
-
-// 处理图片选择（文件选择器，支持多选）
-const handleImageSelect = async (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    await enqueueImages(files);
-    input.value = "";
-};
-
-// 表情与表情包选择
-const stickerOpen = ref(false);
-
-const insertText = (text: string) => {
-    const editor = editorRef.value;
-    if (!editor) return;
-    editor.focus();
-    let inserted = false;
-    try {
-        inserted = document.execCommand("insertText", false, text);
-    } catch {
-        inserted = false;
-    }
-    if (!inserted) {
-        editor.appendChild(document.createTextNode(text));
-    }
-};
-
-const handleSelectSticker = async (
-    sticker: StickerItem,
-    kind: StickerKind = "sticker",
-) => {
-    if (sticker.type === "emoji") {
-        insertText(sticker.name || sticker.path);
-        return;
-    }
-    // 默认小表情：有经典 face id 就作为 face 段发送（对端 QQ 显示内联表情而非图片）
-    if (kind === "emoji" && sticker.faceId) {
-        insertFaceToken(sticker.faceId);
-        return;
-    }
-    // 先试 CDN，失败回退后端本地路由
-    const sources = [sticker.path];
-    const fb = sticker.fallback || qqntLocalFallback(sticker.path);
-    if (fb) sources.push(fb);
-    for (let i = 0; i < sources.length; i++) {
-        try {
-            const res = await fetch(sources[i]);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const blob = await res.blob();
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (typeof reader.result === "string") {
-                    insertInlineImage(reader.result, kind);
-                }
-            };
-            reader.readAsDataURL(blob);
-            return;
-        } catch (e) {
-            if (i === sources.length - 1) {
-                console.error("加载表情包失败:", e);
-            }
-        }
-    }
-};
-
-// 粘贴：图片插入编辑器，纯文本按原样插入
-const handlePaste = async (event: ClipboardEvent) => {
-    const clipboard = event.clipboardData;
-    const files = Array.from(clipboard?.files ?? []).filter((file) =>
-        file.type.startsWith("image/"),
-    );
-    if (files.length) {
-        event.preventDefault();
-        await enqueueImages(files);
-        return;
-    }
-    const text = clipboard?.getData("text/plain");
-    if (text) {
-        // 只按纯文本插入，避免外部富文本样式混进来
-        event.preventDefault();
-        document.execCommand("insertText", false, text);
-    }
-};
-
-let dragDepth = 0;
-const dragOver = ref(false);
-
-const handleDragEnter = () => {
-    dragDepth += 1;
-    dragOver.value = true;
-};
-
-const handleDragLeave = () => {
-    dragDepth = Math.max(0, dragDepth - 1);
-    if (dragDepth === 0) dragOver.value = false;
-};
-
-// 拖拽图片到输入区插入编辑器
-const handleDrop = async (event: DragEvent) => {
-    dragDepth = 0;
-    dragOver.value = false;
-    event.preventDefault();
-    const files = Array.from(event.dataTransfer?.files ?? []).filter((file) =>
-        file.type.startsWith("image/"),
-    );
-    if (!files.length) return;
-    await enqueueImages(files);
-};
-
-/** 编辑器内容切面：按顺序抽出文字与内联图片 */
-interface EditorPiece {
-    type: "text" | "image" | "at";
-    text?: string;
-    dataUrl?: string;
-    sticker?: StickerKind;
-    /** face 段的表情 id（默认小表情） */
-    face?: string;
-    /** at 段：目标 qq（all 表示全体）与显示名 */
-    atId?: string;
-    atName?: string;
-}
-
-const extractEditor = (): EditorPiece[] => {
-    const pieces: EditorPiece[] = [];
-    const walk = (node: Node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-            pieces.push({ type: "text", text: node.textContent ?? "" });
-            return;
-        }
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
-        const el = node as HTMLElement;
-        const atId = el.getAttribute?.("data-at");
-        if (atId != null) {
-            pieces.push({
-                type: "at",
-                atId,
-                atName: el.getAttribute("data-at-name") || atId,
-            });
-            return;
-        }
-        if (el.tagName === "IMG") {
-            const face = el.getAttribute("data-face");
-            if (face) {
-                pieces.push({ type: "image", dataUrl: "", face });
-                return;
-            }
-            const sticker = el.getAttribute("data-sticker");
-            pieces.push({
-                type: "image",
-                dataUrl: el.getAttribute("src") ?? "",
-                sticker:
-                    sticker === "emoji" || sticker === "sticker"
-                        ? sticker
-                        : undefined,
-            });
-            return;
-        }
-        if (el.tagName === "BR") {
-            pieces.push({ type: "text", text: "\n" });
-            return;
-        }
-        // contenteditable 的换行是 <div>/<p> 块，抽成换行符
-        if (el.tagName === "DIV" || el.tagName === "P") {
-            pieces.push({ type: "text", text: "\n" });
-        }
-        Array.from(el.childNodes).forEach(walk);
-    };
-    Array.from(editorRef.value?.childNodes ?? []).forEach(walk);
-    return pieces;
-};
-
-const clearEditor = () => {
-    if (editorRef.value) editorRef.value.innerHTML = "";
-    imageBase64Map.clear();
-};
-
-// ==================== 语音输入 ====================
-
-const {
-    recording: voiceRecording,
-    duration: voiceDuration,
-    start: startRecording,
-    stop: stopRecording,
-} = useVoiceRecorder();
-
-const toggleRecord = async () => {
-    if (voiceRecording.value) {
-        const result = await stopRecording();
-        if (result?.base64) {
-            voiceItems.value.push({
-                id: ++voiceSeq,
-                dataUrl: result.dataUrl,
-                base64: result.base64,
-                duration: result.duration,
-            });
-        } else if (!result) {
-            ZXNotification({
-                title: "录音失败",
-                message: "这段语音没能录下来，再试一次吧 (´；ω；`)",
-                type: "error",
-                position: "top-right",
-            });
-        }
-        return;
-    }
-    const ok = await startRecording();
-    if (!ok) {
-        ZXNotification({
-            title: "无法录音",
-            message: "没有拿到麦克风权限哦 (｡•ˇ‸ˇ•｡)",
-            type: "error",
-            position: "top-right",
-        });
-    }
-};
-
-// 发送侧内容段（content 为线上协议格式：文本原文 / base64:// 图片 / base64://voice/ 语音）
-interface OutgoingPart {
-    type: "text" | "image" | "record" | "face" | "at";
-    content: string;
-    sticker?: StickerKind;
-    /** at 段的显示名（仅本地回显用，发给后端只保留 content=目标qq） */
-    name?: string;
-}
-
-/** 编辑器内容 + 语音附件 → 有序发送段 */
-const buildOutgoingParts = (): OutgoingPart[] => {
-    const parts: OutgoingPart[] = [];
-    for (const piece of extractEditor()) {
-        if (piece.type === "text") {
-            const text = piece.text ?? "";
-            if (!text) continue;
-            const last = parts[parts.length - 1];
-            if (last && last.type === "text") {
-                last.content += text;
-            } else {
-                parts.push({ type: "text", content: text });
-            }
-        } else if (piece.type === "at" && piece.atId) {
-            parts.push({
-                type: "at",
-                content: piece.atId,
-                name: piece.atName,
-            });
-        } else if (piece.face) {
-            parts.push({ type: "face", content: piece.face });
-        } else if (piece.dataUrl) {
-            parts.push({
-                type: "image",
-                content: `base64://${
-                    imageBase64Map.get(piece.dataUrl) ??
-                    piece.dataUrl.split(",")[1] ??
-                    ""
-                }`,
-                sticker: piece.sticker,
-            });
-        }
-    }
-    for (const voice of voiceItems.value) {
-        parts.push({
-            type: "record",
-            content: `base64://voice/${voice.base64}`,
-        });
-    }
-    return parts;
-};
-
-// 发送消息（编辑器文字 + 内联图片 + 语音合为一条消息）
-// 移动端软键盘/触摸可能把同一次发送重复触发（连着两条一样的消息），
-// 600ms 内的重入直接忽略；正常手动连发的间隔远大于这个值
-let lastSendAt = 0;
-
-const handleSendMessage = async () => {
-    if (Date.now() - lastSendAt < 600) return;
-    const parts = buildOutgoingParts();
-    const hasContent = parts.some(
-        (part) => part.type !== "text" || part.content.trim(),
-    );
-    if (!hasContent) {
-        ZXNotification({
-            title: "提示",
-            message: "消息不能为空哦～",
-            type: "info",
-            position: "top-right",
-        });
-        return;
-    }
-
+// ==================== 发送（内容由 ChatComposer 组装） ====================
+const onComposerSend = async (parts: OutgoingPart[]) => {
     if (!selectedContact.value || !selectedId.value) {
         ZXNotification({
             title: "呜呼～",
@@ -1300,7 +632,6 @@ const handleSendMessage = async () => {
         });
         return;
     }
-    lastSendAt = Date.now();
 
     // 纯文本单段走原始文本；其余（图片/语音/face/at，含单段）统一走 zxmsg:// JSON
     // 发给后端的段只保留 {type, content}，sticker 仅用于本地回显与渲染
@@ -1321,7 +652,6 @@ const handleSendMessage = async () => {
             return { type: "face", content: part.content };
         }
         if (part.type === "at") {
-            // 回显用显示名；发往后端仍是 content=目标qq
             return {
                 type: "at",
                 content: `@${part.name || part.content}`,
@@ -1347,7 +677,7 @@ const handleSendMessage = async () => {
         .trim();
 
     const botAvatar =
-        bot.ava_url || `http://q1.qlogo.cn/g?b=qq&nk=${bot.self_id}&s=160`;
+        bot.ava_url || `https://q1.qlogo.cn/g?b=qq&nk=${bot.self_id}&s=160`;
     const newMessage: ChatMessage = {
         id: createMessageId(),
         user_id: bot.self_id,
@@ -1368,7 +698,6 @@ const handleSendMessage = async () => {
     await appendCurrentMessage(newMessage);
 
     try {
-        // 使用 WebSocket 模块发送消息（调用 /manage/send_message 接口）
         await sendWsMessage(
             { self_id: bot.self_id, name: <string>bot.nickname },
             selectedContact.value === "group" ? selectedId.value : null,
@@ -1377,7 +706,6 @@ const handleSendMessage = async () => {
         );
     } catch (error: any) {
         console.error("发送消息失败:", error);
-        // 发送失败，移除刚添加的消息
         await removeCurrentMessage(newMessage.id);
         ZXNotification({
             title: "发送失败",
@@ -1389,8 +717,6 @@ const handleSendMessage = async () => {
         return;
     }
 
-    clearEditor();
-    voiceItems.value = [];
     scrollToBottom();
 };
 
@@ -1400,10 +726,6 @@ const getCurrentBot = () => {
 };
 
 
-// 触发图片上传
-const triggerImageUpload = () => {
-    imageInput.value?.click();
-};
 
 // 滚动到底部：瞬时定位，进入/切换会话直接钉在底部，不做平滑滚动
 const scrollToBottom = () => {
@@ -1434,11 +756,52 @@ watch(
 // 切换会话/联系人：重置窗口并直接钉在底部
 watch([selectedContact, selectedId], () => {
     renderCount.value = 60;
-    atOpen.value = false;
     groupMembers.value = [];
     membersLoadedGroupId.value = "";
     nextTick(() => scrollToBottom());
 });
+
+const stickerBoxClass = (k?: StickerKind) =>
+    k === "emoji"
+        ? "inline-flex items-center text-xs sm:text-sm"
+        : k === "sticker"
+          ? "inline-block"
+          : "image-message max-w-[min(70%,20rem)]";
+const stickerImgClass = (k?: StickerKind) =>
+    k === "emoji"
+        ? "h-[1.3em] w-[1.3em] object-contain align-middle"
+        : k === "sticker"
+          ? "max-h-[12em] max-w-full object-contain"
+          : "max-w-full align-top";
+const stickerPhClass = (k?: StickerKind) =>
+    k === "emoji"
+        ? "h-[1.3em] w-[1.3em]"
+        : k === "sticker"
+          ? "h-[8em] w-[8em]"
+          : "h-32 w-48";
+
+// 群成员（ChatComposer 的 @ 提及数据源）
+const groupMembers = ref<GroupMember[]>([]);
+const membersLoading = ref(false);
+const membersLoadedGroupId = ref<string>("");
+const loadGroupMembers = async () => {
+    const gid = selectedId.value;
+    if (selectedContact.value !== "group" || !gid) return;
+    if (membersLoadedGroupId.value === gid) return;
+    membersLoading.value = true;
+    try {
+        const bot = getCurrentBot();
+        const res = await manageApi.getGroupMembers(gid, bot?.self_id ?? undefined);
+        if (res?.success && res.data) {
+            groupMembers.value = res.data;
+            membersLoadedGroupId.value = gid;
+        }
+    } catch (e) {
+        console.error("加载群成员失败:", e);
+    } finally {
+        membersLoading.value = false;
+    }
+};
 
 onMounted(async () => {
     scrollToBottom();
@@ -1463,7 +826,7 @@ onMounted(async () => {
                     selectedContact = null;
                     selectedId = '';
                 "
-                class="flex-shrink-0 rounded-2xl p-1.5 text-gray-500 transition-colors hover:bg-gray-100 sm:hidden"
+                class="flex-shrink-0 rounded-2xl p-1.5 text-zx-text-muted transition-colors hover:bg-gray-100 sm:hidden"
             >
                 <ArrowLeft class="h-5 w-5" />
             </button>
@@ -1486,10 +849,10 @@ onMounted(async () => {
                 }}</span>
             </div>
             <div class="flex min-w-0 flex-1 items-baseline gap-2">
-                <p class="truncate font-bold text-gray-700">
+                <p class="truncate font-bold text-zx-text">
                     {{ currentContactInfo.name }}
                 </p>
-                <p class="truncate text-xs text-gray-500">
+                <p class="truncate text-xs text-zx-text-muted">
                     {{ currentContactInfo.id }}
                 </p>
             </div>
@@ -1498,7 +861,7 @@ onMounted(async () => {
                 :class="
                     props.detailOpen
                         ? 'bg-zx-primary-soft text-zx-primary'
-                        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                        : 'text-zx-text-subtle hover:bg-slate-100 hover:text-zx-text-muted'
                 "
                 class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors"
                 :title="props.detailOpen ? '收起详情' : '查看详情'"
@@ -1516,31 +879,25 @@ onMounted(async () => {
         >
             <button
                 v-if="hiddenCount > 0"
-                class="mx-auto mb-2 block cursor-pointer rounded-full px-4 py-1.5 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-zx-primary"
+                class="mx-auto mb-2 block cursor-pointer rounded-full px-4 py-1.5 text-xs text-zx-text-muted transition-colors hover:bg-slate-100 hover:text-zx-primary"
                 type="button"
                 @click="loadOlderMessages"
             >
                 查看更早的消息（还有 {{ hiddenCount }} 条）
             </button>
-            <div
+            <ZxEmptyState
                 v-if="messages.length === 0"
-                class="flex h-full items-center justify-center text-gray-400"
-            >
-                <div class="px-4 text-center">
-                    <MessageSquare
-                        class="mx-auto mb-4 h-12 w-12 opacity-50 sm:h-16 sm:w-16"
-                    />
-                    <p class="text-sm sm:text-base">暂无消息</p>
-                    <p class="mt-2 text-xs sm:text-sm">
-                        选择一个联系人开始聊天吧～
-                    </p>
-                </div>
-            </div>
+                class="h-full"
+                :icon="MessageSquare"
+                size="md"
+                text="暂无消息"
+                sub-text="选择一个联系人开始聊天吧～"
+            />
 
             <div
                 v-for="message in visibleMessages"
                 :key="message.id"
-                class="flex items-start gap-1.5 rounded-xl sm:gap-2"
+                class="group relative flex items-start gap-1.5 rounded-xl sm:gap-2"
                 :class="[
                     selectMode && isSelected(message.id)
                         ? 'bg-zx-primary-soft/70'
@@ -1557,7 +914,7 @@ onMounted(async () => {
                     class="mt-3 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center self-start rounded-md border transition-colors sm:mt-4"
                     :class="
                         isSelected(message.id)
-                            ? 'border-zx-primary bg-zx-primary text-white'
+                            ? 'border-zx-primary bg-zx-primary text-[color:var(--zx-color-on-primary)]'
                             : 'border-slate-300 bg-white'
                     "
                     @click.stop="toggleSelect(message.id)"
@@ -1585,11 +942,11 @@ onMounted(async () => {
                      max-width 才有确定基准（宽度随内容收缩的包裹层会让
                      70% 这类百分比陷入循环解析，塌陷成最小内容宽） -->
                 <div
-                    class="flex min-w-0 flex-1 flex-col"
+                    class="relative flex min-w-0 flex-1 flex-col"
                     :class="message.is_self ? 'items-end' : 'items-start'"
                 >
                     <p
-                        class="mb-1 text-xs text-gray-600"
+                        class="mb-1 text-xs text-zx-text-muted"
                         v-if="!message.is_self && message.group_id"
                     >
                         {{ message.user_name || "未知用户" }}
@@ -1601,7 +958,7 @@ onMounted(async () => {
                         :class="
                             message.is_self
                                 ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)] rounded-br-xs'
-                                : 'bg-gray-200 text-gray-800 rounded-bl-xs'
+                                : 'bg-gray-200 text-zx-text-strong rounded-bl-xs'
                         "
                         class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl"
                     >
@@ -1654,7 +1011,7 @@ onMounted(async () => {
                         :class="
                             message.is_self
                                 ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)] rounded-br-xs'
-                                : 'bg-gray-200 text-gray-800 rounded-bl-xs'
+                                : 'bg-gray-200 text-zx-text-strong rounded-bl-xs'
                         "
                         class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl text-xs sm:text-sm"
                         v-image-viewer:chat
@@ -1694,7 +1051,7 @@ onMounted(async () => {
                         >
                             <div
                                 v-if="message.sticker !== 'emoji'"
-                                class="text-center text-gray-400"
+                                class="text-center text-zx-text-subtle"
                             >
                                 <AlertCircle class="mx-auto mb-1 h-6 w-6 text-zx-warning" />
                                 <span class="text-xs">图片加载失败</span>
@@ -1709,7 +1066,7 @@ onMounted(async () => {
                         >
                             <div
                                 v-if="message.sticker !== 'emoji'"
-                                class="text-xs text-gray-400"
+                                class="text-xs text-zx-text-subtle"
                             >
                                 加载中...
                             </div>
@@ -1719,7 +1076,7 @@ onMounted(async () => {
                     <!-- 语音消息 -->
                     <div
                         v-else-if="message.message_type === 'record'"
-                        :class="message.is_self ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)]' : 'bg-gray-200 text-gray-800'"
+                        :class="message.is_self ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)]' : 'bg-gray-200 text-zx-text-strong'"
                         class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl"
                     >
                         <div class="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm">
@@ -1747,7 +1104,7 @@ onMounted(async () => {
                         ></video>
                         <div
                             v-else
-                            :class="message.is_self ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)]' : 'bg-gray-200 text-gray-800'"
+                            :class="message.is_self ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)]' : 'bg-gray-200 text-zx-text-strong'"
                             class="flex items-center gap-2 rounded-2xl px-3 py-2 text-xs sm:text-sm"
                         >
                             <Video class="h-4 w-4 shrink-0" />
@@ -1763,12 +1120,12 @@ onMounted(async () => {
                         "
                         class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl"
                     >
-                        <div class="flex items-center gap-2 px-3 pt-2 text-xs text-gray-500">
+                        <div class="flex items-center gap-2 px-3 pt-2 text-xs text-zx-text-muted">
                             <FileText class="h-3.5 w-3.5 shrink-0" />
                             {{ message.message_type === "json" ? "JSON 卡片" : "XML 卡片" }}
                         </div>
                         <pre
-                            class="max-h-48 overflow-auto px-3 pb-2 pt-1 text-left font-mono text-[10px] leading-4 whitespace-pre-wrap text-gray-600"
+                            class="max-h-48 overflow-auto px-3 pb-2 pt-1 text-left font-mono text-[10px] leading-4 whitespace-pre-wrap text-zx-text-muted"
                         >{{
                             formatStructured(message.message)
                         }}</pre>
@@ -1777,7 +1134,7 @@ onMounted(async () => {
                     <!-- 合并转发卡片：点击打开聊天记录查看器 -->
                     <div
                         v-else-if="message.message_type === 'forward'"
-                        class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl bg-gray-200 text-gray-800"
+                        class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl bg-gray-200 text-zx-text-strong"
                     >
                         <button
                             type="button"
@@ -1793,11 +1150,11 @@ onMounted(async () => {
                             />
                             <div class="min-w-0 flex-1">
                                 <p class="text-xs sm:text-sm">聊天记录</p>
-                                <p class="text-[10px] text-gray-500">
+                                <p class="text-[10px] text-zx-text-muted">
                                     点击查看转发的消息
                                 </p>
                             </div>
-                            <ChevronRight class="h-4 w-4 shrink-0 text-gray-400" />
+                            <ChevronRight class="h-4 w-4 shrink-0 text-zx-text-subtle" />
                         </button>
                     </div>
 
@@ -1808,24 +1165,24 @@ onMounted(async () => {
                             message.message_type === 'music' ||
                             message.message_type === 'location'
                         "
-                        class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl bg-gray-200 text-gray-800"
+                        class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl bg-gray-200 text-zx-text-strong"
                     >
                         <div class="flex items-start gap-2 px-3 py-2">
                             <Link2
                                 v-if="message.message_type === 'share'"
-                                class="mt-0.5 h-4 w-4 shrink-0 text-gray-500"
+                                class="mt-0.5 h-4 w-4 shrink-0 text-zx-text-muted"
                             />
                             <Music
                                 v-else-if="message.message_type === 'music'"
-                                class="mt-0.5 h-4 w-4 shrink-0 text-gray-500"
+                                class="mt-0.5 h-4 w-4 shrink-0 text-zx-text-muted"
                             />
                             <MapPin
                                 v-else-if="message.message_type === 'location'"
-                                class="mt-0.5 h-4 w-4 shrink-0 text-gray-500"
+                                class="mt-0.5 h-4 w-4 shrink-0 text-zx-text-muted"
                             />
                             <MessageSquare
                                 v-else
-                                class="mt-0.5 h-4 w-4 shrink-0 text-gray-500"
+                                class="mt-0.5 h-4 w-4 shrink-0 text-zx-text-muted"
                             />
                             <div class="min-w-0">
                                 <p class="break-words text-xs sm:text-sm">
@@ -1846,7 +1203,7 @@ onMounted(async () => {
                         :class="
                             message.is_self
                                 ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)] rounded-br-xs'
-                                : 'bg-gray-200 text-gray-800 rounded-bl-xs'
+                                : 'bg-gray-200 text-zx-text-strong rounded-bl-xs'
                         "
                         class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl text-xs sm:text-sm"
                     >
@@ -1861,7 +1218,7 @@ onMounted(async () => {
                         :class="[
                             message.is_self
                                 ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)] rounded-br-xs'
-                                : 'bg-gray-200 text-gray-800 rounded-bl-xs',
+                                : 'bg-gray-200 text-zx-text-strong rounded-bl-xs',
                         ]"
                         class="max-w-[min(70%,28rem)] overflow-hidden rounded-2xl"
                     >
@@ -1870,11 +1227,12 @@ onMounted(async () => {
                         </p>
                     </div>
 
+                    <!-- 发送时间：hover 浮显，绝对定位不占布局 -->
                     <p
+                        class="pointer-events-none absolute top-full z-10 mt-0.5 text-[10px] whitespace-nowrap text-zx-text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100"
                         :class="
-                            message.is_self ? 'text-right' : 'text-left'
+                            message.is_self ? 'right-0 text-right' : 'left-0 text-left'
                         "
-                        class="mt-1 text-[10px] text-gray-500"
                     >
                         {{ new Date(message.timestamp).toLocaleTimeString() }}
                     </p>
@@ -1900,7 +1258,7 @@ onMounted(async () => {
         <!-- 回到底部：翻历史时出现 -->
         <button
             v-if="showScrollBottom"
-            class="btn-touch absolute right-5 bottom-24 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-md backdrop-blur-sm transition-colors hover:text-zx-primary"
+            class="btn-touch absolute right-5 bottom-24 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white/95 text-zx-text-muted shadow-md backdrop-blur-sm transition-colors hover:text-zx-primary"
             type="button"
             title="回到底部"
             @click="scrollToBottom()"
@@ -1915,7 +1273,7 @@ onMounted(async () => {
         >
             <button
                 type="button"
-                class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-zx-text-muted transition-colors hover:bg-slate-100 hover:text-zx-text"
                 title="退出多选"
                 @click="exitSelectMode"
             >
@@ -1934,162 +1292,19 @@ onMounted(async () => {
             </ZxButton>
         </div>
 
-        <!-- 输入框区域 -->
-        <div
-            class="relative bg-white p-3"
+        <!-- 输入框区域：ChatComposer（工具栏图二布局，移动端工具栏在上） -->
+        <ChatComposer
             v-if="selectedContact && !selectMode"
-            @dragenter.prevent="handleDragEnter"
-            @dragover.prevent
-            @dragleave="handleDragLeave"
-            @drop.prevent="handleDrop"
-        >
-            <!-- 语音附件（录音后挂在输入框上方） -->
-            <div
-                v-if="voiceItems.length || voiceRecording"
-                class="mb-2 flex items-center gap-2 overflow-x-auto"
-            >
-                <div
-                    v-for="item in voiceItems"
-                    :key="item.id"
-                    class="flex shrink-0 items-center gap-2 rounded-xl bg-slate-100 px-2.5 py-1.5"
-                >
-                    <Mic class="h-4 w-4 shrink-0 text-zx-primary" />
-                    <audio controls :src="item.dataUrl" class="h-8 max-w-44"></audio>
-                    <span class="shrink-0 text-xs text-slate-400">
-                        {{ item.duration }}s
-                    </span>
-                    <button
-                        class="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                        title="移除"
-                        type="button"
-                        @click="removeVoiceItem(item.id)"
-                    >
-                        <X class="h-3 w-3" />
-                    </button>
-                </div>
-                <!-- 录音中提示 -->
-                <div
-                    v-if="voiceRecording"
-                    class="flex shrink-0 items-center gap-2 rounded-xl bg-red-50 px-3 py-1.5"
-                >
-                    <span
-                        class="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500"
-                    ></span>
-                    <span class="text-xs font-semibold text-red-500">
-                        录音中 {{ voiceDuration }}s
-                    </span>
-                </div>
-            </div>
-
-            <!-- 工具栏（输入框上方） -->
-            <div class="mb-1.5 flex items-center gap-0.5 px-0.5">
-                <ZxButton
-                    variant="ghost"
-                    circle
-                    size="sm"
-                    title="插入图片"
-                    @click="triggerImageUpload"
-                >
-                    <ImageIcon class="h-4 w-4" />
-                </ZxButton>
-                <!-- 隐藏的图片输入（可多选） -->
-                <input
-                    ref="imageInput"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    class="hidden"
-                    @change="handleImageSelect"
-                />
-
-                <!-- 表情与表情包 -->
-                <div class="relative">
-                    <button
-                        type="button"
-                        :class="
-                            stickerOpen
-                                ? 'bg-pink-100 text-pink-600 dark:bg-pink-950/50 dark:text-pink-300'
-                                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200'
-                        "
-                        class="btn-touch flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors"
-                        title="表情与表情包"
-                        @click="stickerOpen = !stickerOpen"
-                    >
-                        <Smile class="h-4 w-4" />
-                    </button>
-
-                    <StickerPicker
-                        v-model="stickerOpen"
-                        @select="handleSelectSticker"
-                    />
-                </div>
-
-                <!-- 语音按钮 -->
-                <button
-                    type="button"
-                    :class="
-                        voiceRecording
-                            ? 'bg-red-100 text-red-500'
-                            : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
-                    "
-                    class="btn-touch flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors"
-                    :title="
-                        voiceRecording
-                            ? `停止录音（${voiceDuration}s）`
-                            : '录制语音'
-                    "
-                    @click="toggleRecord"
-                >
-                    <Mic
-                        :class="voiceRecording ? 'animate-pulse' : ''"
-                        class="h-4 w-4"
-                    />
-                </button>
-
-                <!-- 历史记录 -->
-                <ZxButton
-                    variant="ghost"
-                    circle
-                    size="sm"
-                    class="ml-auto"
-                    title="历史记录"
-                    @click="historyOpen = true"
-                >
-                    <Clock class="h-4 w-4" />
-                </ZxButton>
-            </div>
-
-            <!-- 拖拽提示遮罩 -->
-            <div
-                v-if="dragOver"
-                class="pointer-events-none absolute inset-x-0 bottom-0 z-10 m-3 rounded-2xl border-2 border-dashed border-zx-primary bg-white/80 py-6 text-center text-xs font-semibold text-zx-primary"
-            >
-                松开把图片插入输入框
-            </div>
-
-            <!-- 富文本输入框：文字与内联图片混排，发送按钮在框内右下角 -->
-            <div class="relative">
-                <div
-                    ref="editorRef"
-                    contenteditable="true"
-                    data-placeholder="输入消息，按 Enter 发送"
-                    class="rich-editor max-h-32 min-h-12 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 pr-14 text-sm leading-5 text-slate-700 focus:outline-none"
-                    @input="onEditorInput"
-                    @keydown="onEditorKeydown"
-                    @paste="handlePaste"
-                ></div>
-                <ZxButton
-                    circle
-                    size="sm"
-                    class="absolute bottom-1.5 right-1.5 shadow-sm"
-                    title="发送"
-                    @click="handleSendMessage"
-                >
-                    <Send class="h-4 w-4" />
-                </ZxButton>
-            </div>
-        </div>
-
+            class="mx-3 mb-3"
+            :disabled="!selectedContact"
+            :group-mode="selectedContact === 'group'"
+            :group-members="groupMembers"
+            :members-loading="membersLoading"
+            show-history
+            @send="onComposerSend"
+            @open-history="historyOpen = true"
+            @need-members="loadGroupMembers"
+        />
         <!-- 历史记录弹窗 -->
         <ChatHistoryModal
             :visible="historyOpen"
@@ -2115,95 +1330,12 @@ onMounted(async () => {
             @pick="doForward"
         />
 
-        <!-- @ 提及成员浮层：贴光标、随主题、↑↓/Enter 选择 -->
-        <Teleport to="body">
-            <div
-                v-if="atOpen && selectedContact === 'group'"
-                ref="atRef"
-                class="fixed z-[9999] w-60 select-none overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-                :style="{
-                    left: mentionLeft + 'px',
-                    top: mentionPos.y - 8 + 'px',
-                    transform: 'translateY(-100%)',
-                }"
-                @contextmenu.prevent.stop
-                @selectstart.prevent
-            >
-                <div
-                    ref="mentionListRef"
-                    class="flex max-h-60 flex-col gap-1 overflow-y-auto p-1.5"
-                >
-                    <div
-                        v-if="membersLoading"
-                        class="px-3 py-4 text-center text-xs text-zx-text-muted"
-                    >
-                        加载成员中…
-                    </div>
-                    <div
-                        v-else-if="atList.length === 0"
-                        class="px-3 py-4 text-center text-xs text-zx-text-muted"
-                    >
-                        没有匹配的成员
-                    </div>
-                    <button
-                        v-for="(m, i) in atList"
-                        :key="m.user_id"
-                        type="button"
-                        class="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-left"
-                        :class="
-                            i === mentionIndex
-                                ? 'bg-zx-primary-soft'
-                                : 'hover:bg-zx-primary-soft/60'
-                        "
-                        @mousedown.prevent
-                        @click="pickAt(m)"
-                    >
-                        <img
-                            v-if="m.ava_url"
-                            :src="m.ava_url"
-                            class="h-7 w-7 shrink-0 rounded-full bg-slate-100 object-cover"
-                            referrerpolicy="no-referrer"
-                        />
-                        <span
-                            v-else
-                            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zx-primary-soft text-xs text-zx-primary"
-                        >
-                            {{ displayName(m).charAt(0) || "?" }}
-                        </span>
-                        <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm text-zx-text">{{
-                                displayName(m)
-                            }}</span>
-                        </span>
-                    </button>
-                </div>
-            </div>
-        </Teleport>
     </div>
 </template>
 
 <style scoped>
-/* 富文本输入框：内联图片与占位提示（运行时插入的节点拿不到 scoped 属性，需 :deep）
-   图片与文字行内混排，同行文字与图片底部对齐（text-bottom），行框随图片撑高 */
-.rich-editor :deep(img) {
-    display: inline-block;
-    max-height: 6rem;
-    max-width: 12rem;
-    margin: 0 2px;
-    border-radius: 0.5rem;
-    vertical-align: text-bottom;
-}
 
-/* 原生光标由 useCustomCaret 自绘替代 */
-.rich-editor {
-    caret-color: transparent;
-}
 
-.rich-editor:empty::before {
-    content: attr(data-placeholder);
-    color: var(--zx-color-text-muted, #94a3b8);
-    pointer-events: none;
-}
 
 /* 图片按原始比例完整显示，只限制最大尺寸 */
 .image-message img {
