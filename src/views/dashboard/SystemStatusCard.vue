@@ -56,7 +56,7 @@ const barColor = computed(() => {
                     :class="[iconColor, 'h-3.5 w-3.5 shrink-0 sm:h-5 sm:w-5']"
                 />
                 <span
-                    class="truncate text-xs font-semibold text-gray-700 sm:text-base"
+                    class="truncate text-xs font-semibold text-zx-text sm:text-base"
                 >
                     {{ title }}
                 </span>
@@ -67,7 +67,7 @@ const barColor = computed(() => {
             ></span>
             <span
                 v-else
-                :class="isAlert ? 'text-red-500' : 'text-slate-800'"
+                :class="isAlert ? 'text-red-500' : 'text-zx-text-strong'"
                 class="shrink-0 text-sm font-bold sm:text-lg"
             >
                 <span v-odometer="value"></span>%
@@ -85,9 +85,10 @@ const barColor = computed(() => {
             ></div>
         </div>
         <div v-if="loading" class="mt-2 h-3.5 w-28 animate-pulse rounded-full bg-slate-100"></div>
+        <!-- 白底卡片上 subtle 对比度不足 4.5:1，副文字用 muted 保证可读性 -->
         <div
             v-else-if="subtitle"
-            class="mt-2 truncate text-sm text-slate-400"
+            class="mt-2 truncate text-sm text-zx-text-muted"
         >
             {{ subtitle }}
         </div>

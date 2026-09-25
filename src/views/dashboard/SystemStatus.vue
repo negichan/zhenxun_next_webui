@@ -13,7 +13,7 @@ const props = defineProps<Props>();
         class="flex h-30 flex-1 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm"
     >
         <div class="left flex flex-col">
-            <div class="title mb-4 text-slate-600">
+            <div class="title mb-4 text-zx-text-muted">
                 {{ props.title }}
             </div>
             <div class="data flex flex-1 items-center text-3xl font-bold">

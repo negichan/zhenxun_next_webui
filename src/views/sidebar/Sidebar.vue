@@ -22,7 +22,9 @@ watch(
                 tab === "market" ? "plugin-market" : "plugin-local",
             );
         } else if (path === "/config") {
-            globalStore.setActiveMenuKey("config-ai");
+            globalStore.setActiveMenuKey(
+                tab === "env" ? "config-env" : "config-ai",
+            );
         } else if (newKey) {
             globalStore.setActiveMenuKey(newKey as string);
         }

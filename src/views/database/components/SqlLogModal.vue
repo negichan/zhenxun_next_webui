@@ -24,7 +24,7 @@ const formatTime = (iso: string) => {
         width="max-w-[600px]"
         @close="closeSqlLog"
     >
-        <div v-if="sqlLogLoading" class="py-8 text-center text-gray-400">
+        <div v-if="sqlLogLoading" class="py-8 text-center text-zx-text-subtle">
             <Clock class="mx-auto mb-2 h-8 w-8 animate-pulse" />
             <p>加载中...</p>
         </div>
@@ -53,18 +53,18 @@ const formatTime = (iso: string) => {
                             class="h-4 w-4 flex-shrink-0 text-red-600"
                         />
                         <span
-                            class="truncate text-sm font-medium text-gray-700"
+                            class="truncate text-sm font-medium text-zx-text"
                         >
                             {{ formatTime(log.created_at) }}
                         </span>
                     </div>
                 </div>
                 <pre
-                    class="font-mono text-xs break-all whitespace-pre-wrap text-gray-600"
+                    class="font-mono text-xs break-all whitespace-pre-wrap text-zx-text-muted"
                 >{{ log.sql }}</pre>
                 <p
                     v-if="log.message"
-                    class="mt-1 text-xs break-all text-gray-500"
+                    class="mt-1 text-xs break-all text-zx-text-muted"
                 >
                     {{ log.message }}
                 </p>

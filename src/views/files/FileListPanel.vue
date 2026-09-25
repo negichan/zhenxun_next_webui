@@ -498,7 +498,7 @@ const openEmptyMenu = (e: MouseEvent) => {
                                     <Edit2 class="h-4 w-4" />
                                 </button>
                                 <button
-                                    class="btn-touch cursor-pointer rounded-2xl p-1.5 transition-colors hover:text-red-600"
+                                    class="btn-touch cursor-pointer rounded-2xl p-1.5 transition-colors hover:text-zx-danger"
                                     title="删除"
                                     @click.stop="emit('delete', [file])"
                                 >

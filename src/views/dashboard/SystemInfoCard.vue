@@ -27,12 +27,12 @@ const statusText = (status: boolean | "checking") => {
 };
 
 const statusDotClass = (status: boolean | "checking") => {
-    if (status === "checking") return "animate-pulse bg-yellow-500";
+    if (status === "checking") return "animate-pulse bg-zx-warning";
     return status ? "animate-pulse bg-green-500" : "bg-red-500";
 };
 
 const statusTextClass = (status: boolean | "checking") => {
-    if (status === "checking") return "text-yellow-600";
+    if (status === "checking") return "text-zx-warning";
     return status ? "text-green-600" : "text-red-600";
 };
 
@@ -47,7 +47,7 @@ const infoItems = computed(() => [
         label: "版本",
         value: props.systemInfo.version,
         icon: GitBranch,
-        iconClass: "text-slate-400",
+        iconClass: "text-zx-text-subtle",
     },
     {
         key: "system",
@@ -55,7 +55,7 @@ const infoItems = computed(() => [
         value: props.systemInfo.system || "-",
         title: props.systemInfo.system,
         icon: Server,
-        iconClass: "text-slate-400",
+        iconClass: "text-zx-text-subtle",
     },
     {
         key: "cpu",
@@ -63,14 +63,14 @@ const infoItems = computed(() => [
         value: props.systemInfo.cpuBrand || "-",
         title: props.systemInfo.cpuBrand,
         icon: Cpu,
-        iconClass: "text-slate-400",
+        iconClass: "text-zx-text-subtle",
     },
     {
         key: "cores",
         label: "核心",
         value: `${props.systemInfo.cpuCores || "-"} 核心`,
         icon: Hash,
-        iconClass: "text-slate-400",
+        iconClass: "text-zx-text-subtle",
     },
     {
         key: "frequency",
@@ -81,7 +81,7 @@ const infoItems = computed(() => [
                 : "-"
         } GHz`,
         icon: Gauge,
-        iconClass: "text-slate-400",
+        iconClass: "text-zx-text-subtle",
     },
     {
         key: "memory",
@@ -92,7 +92,7 @@ const infoItems = computed(() => [
                 : "-"
         } GB`,
         icon: MemoryStick,
-        iconClass: "text-slate-400",
+        iconClass: "text-zx-text-subtle",
     },
 ]);
 </script>
@@ -107,7 +107,7 @@ const infoItems = computed(() => [
         >
             <div class="flex items-center space-x-2">
                 <Info class="h-5 w-5 text-zx-primary" />
-                <h3 class="text-sm font-semibold text-gray-700 sm:text-base">
+                <h3 class="text-sm font-semibold text-zx-text sm:text-base">
                     系统信息
                 </h3>
             </div>
@@ -121,7 +121,7 @@ const infoItems = computed(() => [
                         :class="statusDotClass(item.status)"
                         class="h-2 w-2 rounded-full"
                     ></div>
-                    <span class="text-xs text-gray-500">{{ item.label }}</span>
+                    <span class="text-xs text-zx-text-muted">{{ item.label }}</span>
                     <span
                         :class="statusTextClass(item.status)"
                         class="text-xs font-medium"
@@ -146,7 +146,7 @@ const infoItems = computed(() => [
                     />
                 </div>
                 <div class="flex min-w-0 flex-1 items-center gap-1 text-sm">
-                    <span class="shrink-0 text-xs text-gray-500"
+                    <span class="shrink-0 text-xs text-zx-text-muted"
                         >{{ item.label }}：</span
                     >
                     <span
@@ -156,7 +156,7 @@ const infoItems = computed(() => [
                     <span
                         v-else
                         :title="item.title || String(item.value)"
-                        class="truncate font-medium text-gray-800"
+                        class="truncate font-medium text-zx-text-strong"
                     >
                         {{ item.value }}
                     </span>

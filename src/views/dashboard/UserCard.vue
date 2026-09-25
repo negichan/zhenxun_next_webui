@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { ZXMessageBox, ZXNotification } from "@/services/ui";
 import { systemApi } from "@/utils/api-next";
 
-import avatar from "@/assets/img/avatar.jpg";
+import avatar from "@/assets/img/avatar.webp";
 import { useBotStore } from "@/store/bot.ts";
 import { Power } from "lucide-vue-next";
 
@@ -112,7 +112,12 @@ const handleRestart = async () => {
                 <div
                     class="flex shrink-0 items-center justify-center overflow-hidden"
                 >
-                    <img :src="avatarUrl" alt="" class="size-24 rounded-full" />
+                    <ZxAvatar
+                        :src="avatarUrl"
+                        :name="botStore.selectedBot?.nickname"
+                        size="xl"
+                        class="!h-24 !w-24"
+                    />
                 </div>
             </div>
             <div class="-mt-3 flex gap-10 text-zx-user-card-text">

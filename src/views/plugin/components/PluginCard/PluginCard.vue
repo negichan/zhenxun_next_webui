@@ -182,7 +182,7 @@ const handleOpenConfig = (event: Event) => {
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                     <h3
-                        class="truncate text-sm font-bold text-gray-800"
+                        class="truncate text-sm font-bold text-zx-text-strong"
                         :title="module ? `${name}（${module}）` : name"
                     >
                         {{ name }}
@@ -200,7 +200,7 @@ const handleOpenConfig = (event: Event) => {
                         {{ tag.text }}
                     </ZxTag>
                 </div>
-                <p class="mt-0.5 truncate text-xs text-gray-500">
+                <p class="mt-0.5 truncate text-xs text-zx-text-muted">
                     {{ description || "暂无描述" }}
                     <template v-if="author"> · by {{ author }}</template>
                 </p>
@@ -209,35 +209,17 @@ const handleOpenConfig = (event: Event) => {
             <div class="flex flex-shrink-0 items-center gap-2">
                 <!-- 本地：开关 + 配置 -->
                 <template v-if="type === 'local'">
-                    <div
-                        class="relative inline-flex flex-shrink-0 items-center select-none"
-                        :class="
-                            switchDisabled
-                                ? 'cursor-not-allowed'
-                                : 'cursor-pointer'
-                        "
-                        @click="!switchDisabled && handleToggleStatus(!enabled)"
-                    >
-                        <input
-                            type="checkbox"
-                            class="peer sr-only"
-                            :checked="enabled"
-                            :disabled="processing || switchDisabled"
-                        />
-                        <div
-                            class="peer relative h-[22px] w-10 rounded-full shadow-inner transition-colors after:absolute after:start-[2px] after:top-[2px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-[18px]"
-                            :class="[
-                                switchDisabled
-                                    ? 'bg-blue-100 peer-checked:bg-blue-200'
-                                    : 'bg-gray-200 peer-checked:bg-blue-500',
-                                !switchDisabled && 'peer-checked:hover:bg-blue-600',
-                            ]"
-                        ></div>
-                    </div>
+                    <ZxSwitch
+                        :model-value="enabled"
+                        size="md"
+                        :disabled="processing || switchDisabled"
+                        title="启用/停用插件"
+                        @change="handleToggleStatus"
+                    />
                     <button
                         v-if="allowSetting"
                         @click.stop="handleOpenConfig"
-                        class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-gray-100"
+                        class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-zx-text-muted transition-colors hover:bg-gray-100"
                         title="插件配置"
                         type="button"
                     >
@@ -253,7 +235,7 @@ const handleOpenConfig = (event: Event) => {
                         class="btn-touch flex cursor-pointer items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
                         :class="
                             isInstalled && !hasUpdate
-                                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                                 : 'bg-zx-primary text-[color:var(--zx-color-on-primary)] hover:bg-zx-primary-hover'
                         "
                     >
@@ -263,7 +245,7 @@ const handleOpenConfig = (event: Event) => {
                         v-if="homepage"
                         :href="homepage"
                         target="_blank"
-                        class="btn-touch flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                        class="btn-touch flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-zx-text-muted transition-colors hover:bg-gray-200 hover:text-zx-text"
                     >
                         <ExternalLink class="h-4 w-4" />
                     </a>
@@ -280,7 +262,7 @@ const handleOpenConfig = (event: Event) => {
             <!-- 头部：插件名（+ 置顶标 / 新版本标） -->
             <div class="flex items-center justify-between gap-2">
                 <h3
-                    class="min-w-0 flex-1 truncate text-base font-bold text-gray-800 sm:text-lg"
+                    class="min-w-0 flex-1 truncate text-base font-bold text-zx-text-strong sm:text-lg"
                     :title="module ? `${name}（${module}）` : name"
                 >
                     {{ name }}
@@ -297,7 +279,7 @@ const handleOpenConfig = (event: Event) => {
             <!-- 描述 -->
             <div class="my-2 h-10">
                 <p
-                    class="line-clamp-2 text-sm leading-relaxed break-words text-gray-600"
+                    class="line-clamp-2 text-sm leading-relaxed break-words text-zx-text-muted"
                 >
                     {{ description || "暂无描述" }}
                 </p>
@@ -319,7 +301,7 @@ const handleOpenConfig = (event: Event) => {
             </div>
 
             <!-- 作者信息 -->
-            <div class="text-xs text-gray-500">
+            <div class="text-xs text-zx-text-muted">
                 by
                 <span class="font-medium">{{ author || "未知" }}</span>
             </div>
@@ -332,34 +314,16 @@ const handleOpenConfig = (event: Event) => {
         >
             <!-- 本地：开关 + 配置 -->
             <template v-if="type === 'local'">
-                <div
-                    class="relative inline-flex flex-shrink-0 items-center select-none"
-                    :class="
-                        switchDisabled ? 'cursor-not-allowed' : 'cursor-pointer'
-                    "
-                    @click="
-                        !switchDisabled && handleToggleStatus(!enabled)
-                    "
-                >
-                    <input
-                        type="checkbox"
-                        class="peer sr-only"
-                        :checked="enabled"
+                <div class="flex flex-shrink-0 items-center gap-2 select-none">
+                    <ZxSwitch
+                        :model-value="enabled"
+                        size="md"
                         :disabled="processing || switchDisabled"
+                        @change="handleToggleStatus"
                     />
-                    <div
-                        class="peer relative h-[22px] w-10 rounded-full shadow-inner transition-colors after:absolute after:start-[2px] after:top-[2px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-[18px]"
-                        :class="[
-                            switchDisabled
-                                ? 'bg-blue-100 peer-checked:bg-blue-200'
-                                : 'bg-gray-200 peer-checked:bg-blue-500',
-                            !switchDisabled &&
-                                'peer-focus:ring-2 peer-focus:ring-blue-200 peer-focus:outline-none hover:bg-gray-300 peer-checked:hover:bg-blue-600',
-                        ]"
-                    ></div>
                     <span
-                        class="ms-2 text-[11px] leading-none font-medium whitespace-nowrap"
-                        :class="switchDisabled ? 'text-blue-300' : 'text-gray-500'"
+                        class="text-[11px] leading-none font-medium whitespace-nowrap"
+                        :class="switchDisabled ? 'text-zx-text-subtle' : 'text-zx-text-muted'"
                     >
                         {{ enabled ? "开" : "关" }}
                     </span>
@@ -371,7 +335,7 @@ const handleOpenConfig = (event: Event) => {
                 <button
                     v-if="allowSetting"
                     @click.stop="handleOpenConfig"
-                    class="flex-shrink-0 cursor-pointer rounded-full p-2 transition-colors text-gray-600 hover:bg-gray-100"
+                    class="flex-shrink-0 cursor-pointer rounded-full p-2 transition-colors text-zx-text-muted hover:bg-gray-100"
                     title="插件配置"
                     type="button"
                 >
@@ -387,7 +351,7 @@ const handleOpenConfig = (event: Event) => {
                     class="btn-touch flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
                     :class="
                         isInstalled && !hasUpdate
-                            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                             : 'bg-zx-primary text-[color:var(--zx-color-on-primary)] hover:bg-zx-primary-hover'
                     "
                 >
@@ -400,7 +364,7 @@ const handleOpenConfig = (event: Event) => {
                     v-if="homepage"
                     :href="homepage"
                     target="_blank"
-                    class="btn-touch flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                    class="btn-touch flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-zx-text-muted transition-colors hover:bg-gray-200 hover:text-zx-text"
                 >
                     <ExternalLink class="h-4 w-4" />
                 </a>

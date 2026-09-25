@@ -20,7 +20,7 @@ const formatCell = (value: unknown): string => {
                     <th
                         v-for="col in columns"
                         :key="col"
-                        class="border-b border-gray-200 px-4 py-3 text-left text-xs font-medium tracking-wider whitespace-nowrap text-gray-500 uppercase"
+                        class="border-b border-gray-200 px-4 py-3 text-left text-xs font-medium tracking-wider whitespace-nowrap text-zx-text-muted uppercase"
                     >
                         <span :title="col">{{ col }}</span>
                     </th>
@@ -35,13 +35,13 @@ const formatCell = (value: unknown): string => {
                     <td
                         v-for="col in columns"
                         :key="col"
-                        class="px-4 py-3 text-sm whitespace-pre-wrap break-all text-gray-700 align-top"
+                        class="px-4 py-3 text-sm whitespace-pre-wrap break-all text-zx-text align-top"
                     >
                         <span
                             :title="formatCell(row[col])"
                             :class="
                                 row[col] === null || row[col] === undefined
-                                    ? 'text-gray-400 italic'
+                                    ? 'text-zx-text-subtle italic'
                                     : ''
                             "
                         >

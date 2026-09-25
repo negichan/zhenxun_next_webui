@@ -14,7 +14,7 @@ const props = defineProps<Props>();
         <div class="data flex flex-1 items-center text-4xl font-bold">
             {{ props.data }}
         </div>
-        <div class="title text-slate-700">
+        <div class="title text-zx-text">
             {{ props.title }}
         </div>
     </div>

@@ -17,16 +17,16 @@ import {
     Blocks,
     ChevronDown,
     ChevronLeft,
-    ChevronRight,
     Group,
     MessageSquare,
-    Search,
     TrendingUp,
     Users,
     X,
     Zap,
 } from "lucide-vue-next";
-import { ZXDropdown } from "@/components/zxcomponent/ZXDropdown";
+
+import { ZXSelect } from "@/components/zxcomponent/ZXSelect";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import { ZXMessageBox, ZXNotification } from "@/services/ui";
 import { manageApi } from "@/utils/api-next";
 import type {
@@ -271,6 +271,12 @@ const syncSelectedTarget = async (retried = false) => {
         await selectFriend(friend);
     }
 };
+
+// 标签页选项（ZxSegmented：图标 + 计数徽标）
+const manageTabOptions = computed(() => [
+    { value: "groups" as TabType, icon: Group, label: "群组", badge: groupStats.value.total },
+    { value: "friends" as TabType, icon: Users, label: "好友", badge: friendStats.value.total },
+]);
 
 // 切换选项卡时加载对应数据
 const switchTab = (tab: TabType) => {
@@ -899,52 +905,26 @@ onMounted(async () => {
                 ]"
             >
                 <!-- 标签页切换 -->
-                <div class="manage-tabs flex px-2 sm:px-3">
-                    <button
-                        v-for="tab in [
-                            { name: 'groups' as TabType, icon: Group, label: '群组', count: groupStats.total },
-                            { name: 'friends' as TabType, icon: Users, label: '好友', count: friendStats.total },
-                        ]"
-                        :key="tab.name"
-                        type="button"
-                        class="tab-item relative flex-1 cursor-pointer py-2.5 sm:py-3"
-                        :class="activeTab === tab.name ? 'is-active' : ''"
-                        @click="switchTab(tab.name)"
-                    >
-                        <span class="tab-label">
-                            <component
-                                :is="tab.icon"
-                                class="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                            />
-                            <span class="text-xs sm:text-sm">{{
-                                tab.label
-                            }}</span>
-                            <span class="tab-count">{{ tab.count }}</span>
-                        </span>
-                        <span
-                            v-if="activeTab === tab.name"
-                            class="tab-bar"
-                        ></span>
-                    </button>
+                <div class="px-2 py-2 sm:px-3">
+                    <ZxSegmented
+                        block
+                        :model-value="activeTab"
+                        :options="manageTabOptions"
+                        @change="switchTab"
+                    />
                 </div>
 
                 <!-- 搜索栏 -->
                 <div class="border-b border-gray-100 p-1.5 sm:p-2">
-                    <div class="relative">
-                        <Search
-                            class="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 transform text-gray-400 sm:left-3 sm:h-4 sm:w-4"
-                        />
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            :placeholder="
-                                activeTab === 'groups'
-                                    ? '搜索群组...'
-                                    : '搜索好友...'
-                            "
-                            class="w-full rounded-full border border-gray-200 py-1.5 pr-2.5 pl-8 text-xs transition-all focus:outline-none sm:py-2 sm:pr-3 sm:pl-9 sm:text-sm"
-                        />
-                    </div>
+                    <ZXInput
+                        v-model="searchQuery"
+                        type="search"
+                        :placeholder="
+                            activeTab === 'groups'
+                                ? '搜索群组...'
+                                : '搜索好友...'
+                        "
+                    />
                 </div>
 
                 <!-- 列表内容 -->
@@ -955,7 +935,7 @@ onMounted(async () => {
                         v-if="loading"
                         class="flex items-center justify-center py-8"
                     >
-                        <div class="text-center text-gray-400">
+                        <div class="text-center text-zx-text-subtle">
                             <div
                                 class="mx-auto mb-2 h-6 w-6 animate-pulse rounded-full border-2 border-zx-primary border-t-transparent sm:h-8 sm:w-8"
                             />
@@ -963,27 +943,17 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <div
+                    <ZxEmptyState
                         v-else-if="
                             (activeTab === 'groups' &&
                                 filteredGroups.length === 0) ||
                             (activeTab === 'friends' &&
                                 filteredFriends.length === 0)
                         "
-                        class="flex items-center justify-center py-8"
-                    >
-                        <div class="text-center text-gray-400">
-                            <Group
-                                v-if="activeTab === 'groups'"
-                                class="mx-auto mb-2 h-10 w-10 opacity-50 sm:h-12 sm:w-12"
-                            />
-                            <Users
-                                v-else
-                                class="mx-auto mb-2 h-10 w-10 opacity-50 sm:h-12 sm:w-12"
-                            />
-                            <p class="text-xs sm:text-sm">暂无数据</p>
-                        </div>
-                    </div>
+                        :icon="activeTab === 'groups' ? Group : Users"
+                        size="sm"
+                        text="暂无数据"
+                    />
 
                     <!-- 群组列表 -->
                     <template v-else-if="activeTab === 'groups'">
@@ -998,27 +968,21 @@ onMounted(async () => {
                                     : 'hover:bg-gray-50',
                             ]"
                         >
-                            <img
-                                v-if="group.ava_url"
+                            <ZxAvatar
                                 :src="group.ava_url"
-                                referrerpolicy="no-referrer"
-                                class="h-8 w-8 flex-shrink-0 rounded-2xl object-cover sm:h-10 sm:w-10"
-                                @error="group.ava_url = ''"
+                                :name="group.group_name || '群'"
+                                size="sm"
+                                shape="square"
+                                class="flex-shrink-0 sm:!h-10 sm:!w-10"
                             />
-                            <div
-                                v-else
-                                class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl bg-zx-primary-soft text-xs font-bold text-zx-primary sm:h-10 sm:w-10 sm:text-sm"
-                            >
-                                {{ (group.group_name || "群").charAt(0) }}
-                            </div>
                             <div class="min-w-0 flex-1">
                                 <div
-                                    class="truncate text-xs text-gray-700 sm:text-sm"
+                                    class="truncate text-xs text-zx-text sm:text-sm"
                                 >
                                     {{ group.group_name }}
                                 </div>
                                 <div
-                                    class="truncate text-[10px] text-gray-400 sm:text-xs"
+                                    class="truncate text-[10px] text-zx-text-subtle sm:text-xs"
                                 >
                                     {{ group.group_id }}
                                 </div>
@@ -1039,21 +1003,14 @@ onMounted(async () => {
                                     : 'hover:bg-gray-50',
                             ]"
                         >
-                            <img
-                                v-if="friend.ava_url"
+                            <ZxAvatar
                                 :src="friend.ava_url"
-                                referrerpolicy="no-referrer"
-                                class="h-7 w-7 flex-shrink-0 rounded-full object-cover sm:h-8 sm:w-8"
-                                @error="friend.ava_url = ''"
+                                :name="friend.nickname || '友'"
+                                size="sm"
+                                class="flex-shrink-0 max-sm:!h-7 max-sm:!w-7"
                             />
-                            <div
-                                v-else
-                                class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-zx-primary-soft text-xs font-bold text-zx-primary sm:h-8 sm:w-8 sm:text-sm"
-                            >
-                                {{ (friend.nickname || "友").charAt(0) }}
-                            </div>
                             <span
-                                class="min-w-0 flex-1 truncate text-xs text-gray-700 sm:text-sm"
+                                class="min-w-0 flex-1 truncate text-xs text-zx-text sm:text-sm"
                                 >{{ friend.nickname }}</span
                             >
                         </div>
@@ -1070,18 +1027,18 @@ onMounted(async () => {
             >
                 <div
                     v-if="embedded && !targetId"
-                    class="relative flex h-full items-center justify-center p-6 text-center text-gray-400"
+                    class="relative flex h-full items-center justify-center p-6 text-center text-zx-text-subtle"
                 >
                     <button
                         title="返回"
-                        class="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+                        class="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-zx-text-muted transition-colors hover:bg-slate-200 hover:text-zx-text"
                         @click="emit('close')"
                     >
                         <X class="h-4 w-4" />
                     </button>
                     <div>
                         <Group class="mx-auto mb-4 h-14 w-14 opacity-20" />
-                        <p class="text-sm text-gray-500">
+                        <p class="text-sm text-zx-text-muted">
                             请选择聊天对象查看管理信息
                         </p>
                     </div>
@@ -1093,9 +1050,9 @@ onMounted(async () => {
                         v-if="!selectedGroupId"
                         class="flex h-full items-center justify-center"
                     >
-                        <div class="text-center text-gray-400">
+                        <div class="text-center text-zx-text-subtle">
                             <Group class="mx-auto mb-4 h-16 w-16 opacity-20" />
-                            <p class="text-gray-500">请选择一个群组查看详情</p>
+                            <p class="text-zx-text-muted">请选择一个群组查看详情</p>
                         </div>
                     </div>
 
@@ -1103,7 +1060,7 @@ onMounted(async () => {
                         v-else-if="detailLoading"
                         class="flex h-full items-center justify-center"
                     >
-                        <div class="text-center text-gray-400">
+                        <div class="text-center text-zx-text-subtle">
                             <div
                                 class="mx-auto mb-4 h-10 w-10 animate-pulse rounded-full border-3 border-zx-primary border-t-transparent"
                             />
@@ -1125,21 +1082,23 @@ onMounted(async () => {
                                     class="flex-shrink-0 rounded-2xl p-2 transition-colors hover:bg-white/50 sm:hidden"
                                 >
                                     <ChevronLeft
-                                        class="h-5 w-5 text-gray-600"
+                                        class="h-5 w-5 text-zx-text-muted"
                                     />
                                 </button>
-                                <img
+                                <ZxAvatar
                                     :src="groupDetail.ava_url"
-                                    class="h-12 w-12 flex-shrink-0 rounded-full object-cover shadow-md sm:h-18 sm:w-18"
+                                    :name="groupDetail.group_name"
+                                    size="lg"
+                                    class="flex-shrink-0 shadow-md sm:!h-18 sm:!w-18"
                                 />
                                 <div class="min-w-0 flex-1">
                                     <h2
-                                        class="truncate text-base font-bold text-gray-800 sm:text-xl"
+                                        class="truncate text-base font-bold text-zx-text-strong sm:text-xl"
                                     >
                                         {{ groupDetail.group_name }}
                                     </h2>
                                     <p
-                                        class="mt-0.5 truncate text-xs text-gray-500 sm:mt-1 sm:text-sm"
+                                        class="mt-0.5 truncate text-xs text-zx-text-muted sm:mt-1 sm:text-sm"
                                     >
                                         {{ groupDetail.group_id }}
                                     </p>
@@ -1151,7 +1110,7 @@ onMounted(async () => {
                                                 'whitespace-nowrap rounded-full px-2.5 py-1 text-xs sm:px-3 sm:text-sm',
                                                 groupDetail.status
                                                     ? 'bg-zx-primary-soft text-zx-primary'
-                                                    : 'bg-gray-100 text-gray-500',
+                                                    : 'bg-gray-100 text-zx-text-muted',
                                             ]"
                                         >
                                             {{
@@ -1162,7 +1121,7 @@ onMounted(async () => {
                                         </span>
                                         <span
                                             v-if="groupDetail.is_super"
-                                            class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 sm:py-1 sm:text-xs"
+                                            class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-zx-text-muted sm:py-1 sm:text-xs"
                                         >
                                             超级群
                                         </span>
@@ -1174,7 +1133,7 @@ onMounted(async () => {
                                     <button
                                         v-if="embedded"
                                         title="返回"
-                                        class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+                                        class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-zx-text-muted transition-colors hover:bg-slate-200 hover:text-zx-text"
                                         @click="emit('close')"
                                     >
                                         <X class="h-4 w-4" />
@@ -1198,7 +1157,7 @@ onMounted(async () => {
                             <!--                                        {{ groupMembers.length }}-->
                             <!--                                    </div>-->
                             <!--                                    <div-->
-                            <!--                                        class="mt-0.5 text-[10px] text-gray-600 sm:mt-1 sm:text-xs"-->
+                            <!--                                        class="mt-0.5 text-[10px] text-zx-text-muted sm:mt-1 sm:text-xs"-->
                             <!--                                    >-->
                             <!--                                        总人数-->
                             <!--                                    </div>-->
@@ -1212,7 +1171,7 @@ onMounted(async () => {
                             <!--                                        {{ groupDetail.level }}-->
                             <!--                                    </div>-->
                             <!--                                    <div-->
-                            <!--                                        class="mt-0.5 text-[10px] text-gray-600 sm:mt-1 sm:text-xs"-->
+                            <!--                                        class="mt-0.5 text-[10px] text-zx-text-muted sm:mt-1 sm:text-xs"-->
                             <!--                                    >-->
                             <!--                                        群等级-->
                             <!--                                    </div>-->
@@ -1224,7 +1183,7 @@ onMounted(async () => {
                                     class="mb-2 flex flex-wrap items-center justify-between gap-2"
                                 >
                                     <h3
-                                        class="flex items-center gap-1 text-xs font-semibold text-gray-700 sm:gap-2 sm:text-sm"
+                                        class="flex items-center gap-1 text-xs font-semibold text-zx-text sm:gap-2 sm:text-sm"
                                     >
                                         群聊设置
                                     </h3>
@@ -1238,15 +1197,15 @@ onMounted(async () => {
                                     >
                                         <div class="min-w-0 flex-1">
                                             <p
-                                                class="text-xs font-bold text-slate-700 sm:text-sm"
+                                                class="text-xs font-bold text-zx-text sm:text-sm"
                                             >
                                                 群权限
                                             </p>
                                         </div>
-                                        <ZXDropdown
+                                        <ZXSelect
                                             :model-value="String(selectedLevel)"
                                             :options="groupLevelOptions"
-                                            trigger-class="flex h-8 shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 text-xs text-slate-700 transition-colors hover:text-zx-primary sm:h-9 sm:gap-1.5 sm:px-3.5 sm:text-sm"
+                                            trigger-class="flex h-8 shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 text-xs text-zx-text transition-colors hover:text-zx-primary sm:h-9 sm:gap-1.5 sm:px-3.5 sm:text-sm"
                                             @update:model-value="
                                                 chooseLevel(
                                                     Number($event),
@@ -1265,7 +1224,7 @@ onMounted(async () => {
                                                     label
                                                 }}</span>
                                                 <ChevronDown
-                                                    class="h-3 w-3 shrink-0 text-slate-400 transition-transform"
+                                                    class="h-3 w-3 shrink-0 text-zx-text-subtle transition-transform"
                                                     :class="
                                                         open
                                                             ? 'rotate-180'
@@ -1273,7 +1232,7 @@ onMounted(async () => {
                                                     "
                                                 />
                                             </template>
-                                        </ZXDropdown>
+                                        </ZXSelect>
                                     </div>
 
                                     <!-- 群开关：真寻在本群的总开关 -->
@@ -1282,32 +1241,24 @@ onMounted(async () => {
                                     >
                                         <div class="min-w-0 flex-1">
                                             <p
-                                                class="text-xs font-bold text-slate-700 sm:text-sm"
+                                                class="text-xs font-bold text-zx-text sm:text-sm"
                                             >
                                                 群开关
                                             </p>
                                         </div>
-                                        <label
-                                            class="relative inline-flex shrink-0 cursor-pointer items-center"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="sr-only peer"
-                                                :checked="groupDetail.status"
-                                                @change="
-                                                    toggleGroupStatus(
-                                                        groups.find(
-                                                            (g) =>
-                                                                g.group_id ===
-                                                                selectedGroupId,
-                                                        )!,
-                                                    )
-                                                "
-                                            >
-                                            <div
-                                                class="h-5 w-9 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:bg-zx-primary peer-checked:after:translate-x-full sm:h-6 sm:w-11 sm:after:h-5 sm:after:w-5"
-                                            ></div>
-                                        </label>
+                                        <ZxSwitch
+                                            :model-value="groupDetail.status"
+                                            size="md"
+                                            @change="
+                                                toggleGroupStatus(
+                                                    groups.find(
+                                                        (g) =>
+                                                            g.group_id ===
+                                                            selectedGroupId,
+                                                    )!,
+                                                )
+                                            "
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -1318,7 +1269,7 @@ onMounted(async () => {
                                     class="mb-2 flex flex-wrap items-center justify-between gap-2"
                                 >
                                     <h3
-                                        class="flex items-center gap-1 text-xs font-semibold text-gray-700 sm:gap-2 sm:text-sm"
+                                        class="flex items-center gap-1 text-xs font-semibold text-zx-text sm:gap-2 sm:text-sm"
                                     >
                                         <Blocks class="h-3 w-3 sm:h-4 sm:w-4" />
                                         插件列表
@@ -1337,7 +1288,7 @@ onMounted(async () => {
                                                     'cursor-pointer rounded-2xl px-2 py-0.5 text-[10px] font-medium transition-all sm:px-3 sm:py-1 sm:text-xs',
                                                     showPassivePlugins
                                                         ? 'bg-white text-zx-primary shadow-sm'
-                                                        : 'text-gray-500 hover:text-gray-700',
+                                                        : 'text-zx-text-muted hover:text-zx-text',
                                                 ]"
                                             >
                                                 被动 ({{
@@ -1354,7 +1305,7 @@ onMounted(async () => {
                                                     'cursor-pointer rounded-2xl px-2 py-0.5 text-[10px] font-medium transition-all sm:px-3 sm:py-1 sm:text-xs',
                                                     !showPassivePlugins
                                                         ? 'bg-white text-zx-primary shadow-sm'
-                                                        : 'text-gray-500 hover:text-gray-700',
+                                                        : 'text-zx-text-muted hover:text-zx-text',
                                                 ]"
                                             >
                                                 普通 ({{
@@ -1373,7 +1324,7 @@ onMounted(async () => {
                                     <div
                                         class="flex items-center justify-center py-8"
                                     >
-                                        <div class="text-sm text-gray-400">
+                                        <div class="text-sm text-zx-text-subtle">
                                             加载中...
                                         </div>
                                     </div>
@@ -1382,18 +1333,11 @@ onMounted(async () => {
                                     v-else-if="filteredPlugins.length === 0"
                                     class="max-h-64 overflow-y-auto rounded-2xl bg-gray-50 p-2 sm:p-3"
                                 >
-                                    <div
-                                        class="flex items-center justify-center py-8"
-                                    >
-                                        <div class="text-center text-gray-400">
-                                            <Blocks
-                                                class="mx-auto mb-2 h-10 w-10 opacity-20 sm:h-12 sm:w-12"
-                                            />
-                                            <p class="text-xs sm:text-sm">
-                                                暂无插件数据
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <ZxEmptyState
+                                        :icon="Blocks"
+                                        size="sm"
+                                        text="暂无插件数据"
+                                    />
                                 </div>
                                 <div
                                     v-else
@@ -1424,7 +1368,7 @@ onMounted(async () => {
                                                 />
                                                 <div class="min-w-0 flex-1">
                                                     <div
-                                                        class="truncate text-[10px] font-medium text-gray-800 sm:text-sm"
+                                                        class="truncate text-[10px] font-medium text-zx-text-strong sm:text-sm"
                                                     >
                                                         {{ plugin.plugin_name }}
                                                     </div>
@@ -1456,7 +1400,7 @@ onMounted(async () => {
                             <!-- 成员列表 -->
                             <div class="overflow-x-auto">
                                 <h3
-                                    class="mb-2 flex items-center gap-1 text-xs font-semibold text-gray-700 sm:gap-2 sm:text-sm"
+                                    class="mb-2 flex items-center gap-1 text-xs font-semibold text-zx-text sm:gap-2 sm:text-sm"
                                 >
                                     <Users class="h-3 w-3 sm:h-4 sm:w-4" />
                                     群成员列表 ({{ groupMembers.length }})
@@ -1469,36 +1413,36 @@ onMounted(async () => {
                                         <thead class="bg-gray-100">
                                             <tr>
                                                 <th
-                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-zx-text-muted uppercase"
                                                 >
                                                     成员
                                                 </th>
                                                 <th
-                                                    class="px-2 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-4"
+                                                    class="px-2 py-3 text-left text-xs font-medium tracking-wider text-zx-text-muted uppercase sm:px-4"
                                                 >
                                                     角色
                                                 </th>
                                                 <th
                                                     v-if="!embedded"
-                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-zx-text-muted uppercase"
                                                 >
                                                     金币
                                                 </th>
                                                 <th
                                                     v-if="!embedded"
-                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-zx-text-muted uppercase"
                                                 >
                                                     好感度
                                                 </th>
                                                 <th
                                                     v-if="!embedded"
-                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="px-4 py-3 text-left text-xs font-medium tracking-wider text-zx-text-muted uppercase"
                                                 >
                                                     状态
                                                 </th>
                                                 <th
                                                     v-if="!embedded"
-                                                    class="px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-500 uppercase"
+                                                    class="px-4 py-3 text-right text-xs font-medium tracking-wider text-zx-text-muted uppercase"
                                                 >
                                                     操作
                                                 </th>
@@ -1521,15 +1465,17 @@ onMounted(async () => {
                                                     <div
                                                         class="flex items-center gap-3"
                                                     >
-                                                        <img
-                                                            :src="
-                                                                member.ava_url
+                                                        <ZxAvatar
+                                                            :src="member.ava_url"
+                                                            :name="
+                                                                member.remark ||
+                                                                member.nickname
                                                             "
-                                                            class="h-10 w-10 rounded-full"
+                                                            size="md"
                                                         />
                                                         <div>
                                                             <div
-                                                                class="text-sm font-medium text-gray-800"
+                                                                class="text-sm font-medium text-zx-text-strong"
                                                             >
                                                                 {{
                                                                     member.remark ||
@@ -1537,7 +1483,7 @@ onMounted(async () => {
                                                                 }}
                                                             </div>
                                                             <div
-                                                                class="text-xs text-gray-400"
+                                                                class="text-xs text-zx-text-subtle"
                                                             >
                                                                 {{
                                                                     member.user_id
@@ -1556,7 +1502,7 @@ onMounted(async () => {
                                                                 : member.role ===
                                                                     'administrator'
                                                                   ? 'bg-blue-500 text-white'
-                                                                  : 'bg-gray-200 text-gray-500',
+                                                                  : 'bg-gray-200 text-zx-text-muted',
                                                         ]"
                                                     >
                                                         {{
@@ -1575,7 +1521,7 @@ onMounted(async () => {
                                                     class="px-4 py-3"
                                                 >
                                                     <div
-                                                        class="flex items-center gap-1 text-sm text-gray-600"
+                                                        class="flex items-center gap-1 text-sm text-zx-text-muted"
                                                     >
                                                         <span>{{
                                                             member.gold ?? 0
@@ -1587,7 +1533,7 @@ onMounted(async () => {
                                                     class="px-4 py-3"
                                                 >
                                                     <div
-                                                        class="flex items-center gap-1 text-sm text-gray-600"
+                                                        class="flex items-center gap-1 text-sm text-zx-text-muted"
                                                     >
                                                         <span>{{
                                                             member.favorability ??
@@ -1630,7 +1576,7 @@ onMounted(async () => {
                                                         <!--                                                                'cursor-pointer rounded-2xl px-4 py-1 text-xs',-->
                                                         <!--                                                                member.is_banned-->
                                                         <!--                                                                    ? 'bg-green-50 text-green-600 hover:bg-green-100'-->
-                                                        <!--                                                                    : 'bg-red-50 text-red-600 hover:bg-red-100',-->
+                                                        <!--                                                                    : 'bg-red-50 text-red-600 hover:bg-zx-danger-soft',-->
                                                         <!--                                                            ]"-->
                                                         <!--                                                        >-->
                                                         <!--                                                            {{-->
@@ -1645,7 +1591,7 @@ onMounted(async () => {
                                                                     member,
                                                                 )
                                                             "
-                                                            class="cursor-pointer rounded-2xl bg-slate-100 px-4 py-1 text-xs text-slate-600 hover:bg-slate-200"
+                                                            class="cursor-pointer rounded-2xl bg-slate-100 px-4 py-1 text-xs text-zx-text-muted hover:bg-slate-200"
                                                         >
                                                             编辑
                                                         </button>
@@ -1656,59 +1602,25 @@ onMounted(async () => {
                                     </table>
                                 </div>
                                 <!-- 分页控件 -->
-                                <div
+                                <ZxPagination
                                     v-if="memberTotalPages > 1"
-                                    class="mt-3 flex items-center justify-between px-2"
-                                >
-                                    <span class="text-sm text-gray-500">
-                                        第 {{ memberCurrentPage }} 页，共
-                                        {{ memberTotalPages }} 页，总计
-                                        {{ groupMembers.length }} 人
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                        <ZxButton
-                                            variant="outline"
-                                            size="sm"
-                                            :disabled="memberCurrentPage === 1"
-                                            @click="
-                                                changeMemberPage(
-                                                    memberCurrentPage - 1,
-                                                )
-                                            "
-                                        >
-                                            <ChevronLeft class="h-4 w-4" />
-                                            上一页
-                                        </ZxButton>
-                                        <ZxButton
-                                            variant="outline"
-                                            size="sm"
-                                            :disabled="
-                                                memberCurrentPage ===
-                                                memberTotalPages
-                                            "
-                                            @click="
-                                                changeMemberPage(
-                                                    memberCurrentPage + 1,
-                                                )
-                                            "
-                                        >
-                                            下一页
-                                            <ChevronRight class="h-4 w-4" />
-                                        </ZxButton>
-                                    </div>
-                                </div>
+                                    class="mt-3 px-2"
+                                    :page="memberCurrentPage"
+                                    :total-pages="memberTotalPages"
+                                    :summary-text="`第 ${memberCurrentPage} 页，共 ${memberTotalPages} 页，总计 ${groupMembers.length} 人`"
+                                    @update:model-value="changeMemberPage"
+                                />
                             </div>
                         </div>
                     </div>
 
                     <div v-else class="flex h-full items-center justify-center">
-                        <div class="text-center text-gray-400">
-                            <Group class="mx-auto mb-4 h-16 w-16 opacity-20" />
-                            <p class="text-gray-500">暂无详情数据</p>
-                            <p class="mt-2 text-xs text-gray-400">
-                                selectedGroupId: {{ selectedGroupId }}
-                            </p>
-                        </div>
+                        <ZxEmptyState
+                            :icon="Group"
+                            size="md"
+                            text="暂无详情数据"
+                            :sub-text="`selectedGroupId: ${selectedGroupId}`"
+                        />
                     </div>
                 </template>
 
@@ -1718,9 +1630,9 @@ onMounted(async () => {
                         v-if="!selectedUserId"
                         class="flex h-full items-center justify-center"
                     >
-                        <div class="text-center text-gray-400">
+                        <div class="text-center text-zx-text-subtle">
                             <Users class="mx-auto mb-4 h-16 w-16 opacity-20" />
-                            <p class="text-gray-500">请选择一个好友查看详情</p>
+                            <p class="text-zx-text-muted">请选择一个好友查看详情</p>
                         </div>
                     </div>
 
@@ -1735,20 +1647,26 @@ onMounted(async () => {
                                     class="flex-shrink-0 rounded-2xl p-2 transition-colors hover:bg-white/50 sm:hidden"
                                 >
                                     <ChevronLeft
-                                        class="h-5 w-5 text-gray-600"
+                                        class="h-5 w-5 text-zx-text-muted"
                                     />
                                 </button>
-                                <img
+                                <ZxAvatar
                                     :src="
                                         'ava_url' in memberDetail
                                             ? memberDetail.ava_url
                                             : ''
                                     "
-                                    class="h-12 w-12 flex-shrink-0 rounded-full object-cover shadow-md sm:h-16 sm:w-16"
+                                    :name="
+                                        'nickname' in memberDetail
+                                            ? memberDetail.nickname
+                                            : ''
+                                    "
+                                    size="lg"
+                                    class="flex-shrink-0 shadow-md sm:!h-16 sm:!w-16"
                                 />
                                 <div class="min-w-0 flex-1">
                                     <h2
-                                        class="truncate text-base font-bold text-gray-800 sm:text-xl"
+                                        class="truncate text-base font-bold text-zx-text-strong sm:text-xl"
                                     >
                                         {{
                                             "nickname" in memberDetail
@@ -1757,7 +1675,7 @@ onMounted(async () => {
                                         }}
                                     </h2>
                                     <p
-                                        class="mt-0.5 text-xs text-gray-500 sm:mt-1 sm:text-sm"
+                                        class="mt-0.5 text-xs text-zx-text-muted sm:mt-1 sm:text-sm"
                                     >
                                         {{
                                             "user_id" in memberDetail
@@ -1772,7 +1690,7 @@ onMounted(async () => {
                                     <button
                                         v-if="embedded"
                                         title="返回"
-                                        class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700"
+                                        class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-zx-text-muted transition-colors hover:bg-slate-200 hover:text-zx-text"
                                         @click="emit('close')"
                                     >
                                         <X class="h-4 w-4" />
@@ -1808,7 +1726,7 @@ onMounted(async () => {
                                 <!--                                                class="h-4 w-4 text-amber-600"-->
                                 <!--                                            />-->
                                 <!--                                            <span-->
-                                <!--                                                class="text-sm font-medium text-gray-600"-->
+                                <!--                                                class="text-sm font-medium text-zx-text-muted"-->
                                 <!--                                                >金币</span-->
                                 <!--                                            >-->
                                 <!--                                        </div>-->
@@ -1844,7 +1762,7 @@ onMounted(async () => {
                                 <!--                                                class="h-4 w-4 text-pink-600"-->
                                 <!--                                            />-->
                                 <!--                                            <span-->
-                                <!--                                                class="text-sm font-medium text-gray-600"-->
+                                <!--                                                class="text-sm font-medium text-zx-text-muted"-->
                                 <!--                                                >好感度</span-->
                                 <!--                                            >-->
                                 <!--                                        </div>-->
@@ -1888,13 +1806,13 @@ onMounted(async () => {
                                                 class="h-4 w-4 text-zx-primary"
                                             />
                                             <span
-                                                class="text-sm font-semibold text-gray-700"
+                                                class="text-sm font-semibold text-zx-text"
                                                 >近7天互动趋势</span
                                             >
                                         </div>
                                         <div
                                             v-if="friendTrend"
-                                            class="flex items-center gap-3 text-xs text-gray-500"
+                                            class="flex items-center gap-3 text-xs text-zx-text-muted"
                                         >
                                             <span
                                                 class="flex items-center gap-1"
@@ -1940,7 +1858,7 @@ onMounted(async () => {
 
                                     <div
                                         v-else
-                                        class="flex h-40 items-center justify-center text-gray-400"
+                                        class="flex h-40 items-center justify-center text-zx-text-subtle"
                                     >
                                         <span class="text-sm">暂无数据</span>
                                     </div>
@@ -1948,22 +1866,22 @@ onMounted(async () => {
                                 <div
                                     class="flex h-96 items-center justify-center"
                                 >
-                                    <div class="text-center text-gray-400">
+                                    <div class="text-center text-zx-text-subtle">
                                         <Users
                                             class="mx-auto mb-4 h-16 w-16 opacity-20"
                                         />
-                                        <p class="text-gray-500">施工中</p>
+                                        <p class="text-zx-text-muted">施工中</p>
                                     </div>
                                 </div>
                             </template>
 
                             <!-- 无数据 -->
-                            <div v-else class="py-12 text-center text-gray-400">
-                                <Users
-                                    class="mx-auto mb-4 h-16 w-16 opacity-20"
-                                />
-                                <p>暂无好友数据</p>
-                            </div>
+                            <ZxEmptyState
+                                v-else
+                                :icon="Users"
+                                size="md"
+                                text="暂无好友数据"
+                            />
                         </div>
                     </div>
                 </template>
@@ -1990,7 +1908,7 @@ onMounted(async () => {
                         <div
                             class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4"
                         >
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-lg font-semibold text-zx-text-strong">
                                 发送消息
                             </h3>
                             <button
@@ -1998,7 +1916,7 @@ onMounted(async () => {
                                 class="rounded-2xl p-1 transition-colors hover:bg-white/50"
                             >
                                 <svg
-                                    class="h-5 w-5 text-gray-500"
+                                    class="h-5 w-5 text-zx-text-muted"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -2015,8 +1933,10 @@ onMounted(async () => {
                         <div class="flex-1 overflow-y-auto p-6">
                             <div v-if="currentFriend" class="send-message-form">
                                 <div class="message-target">
-                                    <img
+                                    <ZxAvatar
                                         :src="currentFriend.ava_url"
+                                        :name="currentFriend.nickname"
+                                        size="md"
                                         class="message-target-avatar"
                                     />
                                     <div class="message-target-info">
@@ -2028,12 +1948,12 @@ onMounted(async () => {
                                         }}</span>
                                     </div>
                                 </div>
-                                <textarea
+                                <ZXInput
                                     v-model="messageContent"
-                                    rows="6"
+                                    type="textarea"
+                                    :rows="6"
                                     placeholder="输入消息内容..."
-                                    class="message-input w-full resize-y rounded-2xl border bg-white px-3 py-2 text-sm text-gray-700 transition-all placeholder:text-gray-400 focus:outline-none"
-                                ></textarea>
+                                />
                                 <div class="dialog-actions">
                                     <ZxButton
                                         variant="ghost"
@@ -2069,7 +1989,7 @@ onMounted(async () => {
                         <div
                             class="flex items-center justify-between border-b border-slate-200 px-6 py-6 pb-4"
                         >
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-lg font-semibold text-zx-text-strong">
                                 编辑成员信息
                             </h3>
                             <button
@@ -2077,7 +1997,7 @@ onMounted(async () => {
                                 class="rounded-2xl p-1 transition-colors hover:bg-white/50"
                             >
                                 <svg
-                                    class="h-5 w-5 text-gray-500"
+                                    class="h-5 w-5 text-zx-text-muted"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -2097,18 +2017,22 @@ onMounted(async () => {
                                 <div
                                     class="mb-6 flex items-center gap-3 rounded-2xl bg-slate-50 p-3"
                                 >
-                                    <img
+                                    <ZxAvatar
                                         :src="currentMember.ava_url"
-                                        class="h-12 w-12 rounded-full"
+                                        :name="
+                                            currentMember.remark ||
+                                            currentMember.nickname
+                                        "
+                                        size="lg"
                                     />
                                     <div class="flex-1">
-                                        <div class="font-medium text-gray-800">
+                                        <div class="font-medium text-zx-text-strong">
                                             {{
                                                 currentMember.remark ||
                                                 currentMember.nickname
                                             }}
                                         </div>
-                                        <div class="text-xs text-gray-500">
+                                        <div class="text-xs text-zx-text-muted">
                                             {{ currentMember.user_id }}
                                         </div>
                                     </div>
@@ -2117,7 +2041,7 @@ onMounted(async () => {
                                 <!-- 金币输入 -->
                                 <div class="mb-4">
                                     <label
-                                        class="mb-2 block text-sm font-medium text-gray-700"
+                                        class="mb-2 block text-sm font-medium text-zx-text"
                                         >金币数量</label
                                     >
                                     <ZxInputNumber
@@ -2132,7 +2056,7 @@ onMounted(async () => {
                                 <!-- 好感度输入 -->
                                 <div class="mb-4">
                                     <label
-                                        class="mb-2 block text-sm font-medium text-gray-700"
+                                        class="mb-2 block text-sm font-medium text-zx-text"
                                         >好感度</label
                                     >
                                     <ZxInputNumber
@@ -2151,7 +2075,7 @@ onMounted(async () => {
                                 <!--                                    >-->
                                 <!--                                        <div class="flex items-center gap-2">-->
                                 <!--                                            <span-->
-                                <!--                                                class="text-sm font-medium text-gray-700"-->
+                                <!--                                                class="text-sm font-medium text-zx-text"-->
                                 <!--                                                >封禁状态</span-->
                                 <!--                                            >-->
                                 <!--                                        </div>-->
@@ -2203,7 +2127,7 @@ onMounted(async () => {
                         <div
                             class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4"
                         >
-                            <h3 class="text-lg font-semibold text-gray-800">
+                            <h3 class="text-lg font-semibold text-zx-text-strong">
                                 编辑{{
                                     friendEditField === "gold"
                                         ? "金币"
@@ -2215,7 +2139,7 @@ onMounted(async () => {
                                 class="rounded-2xl p-1 transition-colors hover:bg-white/50"
                             >
                                 <svg
-                                    class="h-5 w-5 text-gray-500"
+                                    class="h-5 w-5 text-zx-text-muted"
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -2232,7 +2156,7 @@ onMounted(async () => {
                         <div class="flex-1 overflow-y-auto p-6">
                             <div class="mb-4">
                                 <label
-                                    class="mb-2 block text-sm font-medium text-gray-700"
+                                    class="mb-2 block text-sm font-medium text-zx-text"
                                 >
                                     {{
                                         friendEditField === "gold"
@@ -2316,91 +2240,10 @@ onMounted(async () => {
     font-family: monospace;
 }
 
-.message-input {
-    border-color: var(--zx-color-border);
-}
-
-.message-input:focus {
-    border-color: var(--zx-color-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--zx-color-primary) 16%, transparent);
-}
-
 .dialog-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
     margin-top: 16px;
-}
-
-/* 标签页样式（替代 el-tabs 的下划线式标签栏） */
-.manage-tabs {
-    border-bottom: 1px solid var(--zx-color-border-soft);
-}
-
-.tab-item {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--zx-color-text-muted);
-    transition: all 0.2s;
-}
-
-@media (min-width: 640px) {
-    .tab-item {
-        font-size: 13px;
-    }
-}
-
-.tab-item:hover {
-    color: var(--zx-color-primary);
-}
-
-.tab-item.is-active {
-    color: var(--zx-color-primary);
-    font-weight: 600;
-}
-
-.tab-bar {
-    position: absolute;
-    bottom: 0;
-    left: 8px;
-    right: 8px;
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-    background: linear-gradient(90deg, var(--zx-color-primary), var(--zx-blue-400));
-}
-
-.tab-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-@media (min-width: 640px) {
-    .tab-label {
-        gap: 6px;
-    }
-}
-
-.tab-count {
-    font-size: 9px;
-    color: var(--zx-color-text-subtle);
-    background: var(--zx-color-border-soft);
-    padding: 1px 4px;
-    border-radius: 8px;
-    font-weight: 500;
-}
-
-@media (min-width: 640px) {
-    .tab-count {
-        font-size: 10px;
-        padding: 1px 6px;
-        border-radius: 10px;
-    }
-}
-
-.is-active .tab-count {
-    background: var(--zx-color-primary-soft);
-    color: var(--zx-color-primary);
 }
 </style>

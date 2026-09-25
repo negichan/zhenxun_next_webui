@@ -22,7 +22,7 @@ const levelConfig: Record<
         label: "警告",
     },
     ERROR: { color: "bg-red-100 text-red-700", label: "错误" },
-    DEBUG: { color: "bg-gray-100 text-gray-700", label: "调试" },
+    DEBUG: { color: "bg-gray-100 text-zx-text", label: "调试" },
 };
 
 // 可选的日志级别（按严重程度排序：ERROR > WARNING > INFO > DEBUG）
@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
                 :class="
                     autoScroll
                         ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)]'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-gray-100 text-zx-text-muted'
                 "
                 class="btn-touch flex-shrink-0 rounded-2xl px-3 py-1.5 text-sm font-medium transition-colors"
             >
@@ -148,7 +148,7 @@ onBeforeUnmount(() => {
             </button>
             <button
                 @click="clearLogs"
-                class="btn-touch flex-shrink-0 rounded-2xl bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-100"
+                class="btn-touch flex-shrink-0 rounded-2xl px-3 py-1.5 text-sm font-medium text-zx-danger transition-colors hover:bg-zx-danger-soft"
             >
                 清空日志
             </button>
@@ -160,19 +160,20 @@ onBeforeUnmount(() => {
         >
             <!-- 搜索框 -->
             <div class="flex-1">
-                <ZxSearchInput
+                <ZXInput
                     v-model="searchKeyword"
+                    type="search"
                     placeholder="搜索日志内容或模块..."
                 />
             </div>
 
             <!-- 级别过滤 -->
             <div class="flex flex-wrap items-center gap-2">
-                <span class="flex-shrink-0 text-sm text-gray-600">级别:</span>
+                <span class="flex-shrink-0 text-sm text-zx-text-muted">级别:</span>
                 <div class="flex flex-wrap items-center gap-1">
                     <button
                         @click="toggleSelectAll"
-                        class="btn-touch cursor-pointer rounded-2xl px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100"
+                        class="btn-touch cursor-pointer rounded-2xl px-2 py-1 text-xs font-medium text-zx-text-muted transition-colors hover:bg-gray-100"
                     >
                         {{
                             selectedLevels.length === availableLevels.length
@@ -186,7 +187,7 @@ onBeforeUnmount(() => {
                             :class="
                                 selectedLevels.includes(level)
                                     ? levelConfig[level].color
-                                    : 'bg-gray-100 text-gray-400'
+                                    : 'bg-gray-100 text-zx-text-subtle'
                             "
                             class="btn-touch flex flex-shrink-0 cursor-pointer items-center space-x-1 rounded-2xl px-4 py-1.5 text-xs font-medium transition-colors"
                         >
@@ -232,20 +233,20 @@ onBeforeUnmount(() => {
                                 <!-- 模块名（如果有） -->
                                 <div
                                     v-if="log.module"
-                                    class="max-w-24 flex-shrink-0 truncate rounded-2xl bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
+                                    class="max-w-24 flex-shrink-0 truncate rounded-2xl bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-zx-text-muted"
                                 >
                                     {{ log.module }}
                                 </div>
                                 <!-- 时间戳 -->
                                 <div
-                                    class="ml-auto flex-shrink-0 font-mono text-[10px] text-gray-400"
+                                    class="ml-auto flex-shrink-0 font-mono text-[10px] text-zx-text-subtle"
                                 >
                                     {{ formatTimestamp(log.timestamp) }}
                                 </div>
                             </div>
                             <!-- 第二行：日志消息 -->
                             <div
-                                class="font-mono text-xs leading-relaxed break-all text-gray-700"
+                                class="font-mono text-xs leading-relaxed break-all text-zx-text"
                             >
                                 {{ log.message }}
                             </div>
@@ -257,7 +258,7 @@ onBeforeUnmount(() => {
                         >
                             <!-- 时间戳 -->
                             <div
-                                class="w-20 flex-shrink-0 font-mono text-xs whitespace-nowrap text-gray-500"
+                                class="w-20 flex-shrink-0 font-mono text-xs whitespace-nowrap text-zx-text-muted"
                             >
                                 {{ formatTimestamp(log.timestamp) }}
                             </div>
@@ -273,14 +274,14 @@ onBeforeUnmount(() => {
                             <!-- 模块名（如果有） -->
                             <div
                                 v-if="log.module"
-                                class="flex max-w-32 flex-shrink-0 items-center justify-center truncate rounded-2xl bg-slate-100 px-3 py-0.5 text-xs font-medium text-slate-600"
+                                class="flex max-w-32 flex-shrink-0 items-center justify-center truncate rounded-2xl bg-slate-100 px-3 py-0.5 text-xs font-medium text-zx-text-muted"
                             >
                                 {{ log.module }}
                             </div>
 
                             <!-- 日志消息 -->
                             <div
-                                class="min-w-0 flex-1 font-mono text-sm break-all text-gray-700"
+                                class="min-w-0 flex-1 font-mono text-sm break-all text-zx-text"
                             >
                                 {{ log.message }}
                             </div>
@@ -291,24 +292,3 @@ onBeforeUnmount(() => {
         </div>
     </div>
 </template>
-
-<style scoped>
-/* 自定义滚动条样式 */
-.logs-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.logs-container::-webkit-scrollbar-track {
-    background: var(--zx-color-border-soft);
-    border-radius: 4px;
-}
-
-.logs-container::-webkit-scrollbar-thumb {
-    background: var(--zx-slate-300);
-    border-radius: 4px;
-}
-
-.logs-container::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-color-text-subtle);
-}
-</style>

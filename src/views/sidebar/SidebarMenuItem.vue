@@ -396,7 +396,7 @@ onUnmounted(() => {
                     :class="[
                         isActive
                             ? 'bg-zx-nav-icon-hover text-[color:var(--zx-nav-icon-hover-text)] shadow-sm'
-                            : 'bg-zx-nav-icon text-slate-700',
+                            : 'bg-zx-nav-icon text-zx-text',
                         globalStore.navMini && isActive
                             ? 'border border-slate-300'
                             : 'border border-transparent',
@@ -426,7 +426,7 @@ onUnmounted(() => {
                     class="flex flex-1 justify-end pr-4"
                 >
                     <ChevronRight
-                        class="h-3 w-3 text-slate-400 transition-transform duration-300 sm:h-4 sm:w-4"
+                        class="h-3 w-3 text-zx-text-subtle transition-transform duration-300 sm:h-4 sm:w-4"
                         :class="expanded ? 'rotate-90' : ''"
                     />
                 </div>
@@ -438,7 +438,7 @@ onUnmounted(() => {
                     :class="[isActive ? 'flex' : 'hidden']"
                     class="arrow-right flex-1 justify-end pr-4"
                 >
-                    <ChevronRight class="h-3 w-3 text-slate-400 sm:h-4 sm:w-4" />
+                    <ChevronRight class="h-3 w-3 text-zx-text-subtle sm:h-4 sm:w-4" />
                 </div>
             </div>
         </div>
@@ -491,7 +491,7 @@ onUnmounted(() => {
                                 :class="[
                                     child.key === globalStore.activeMenuKey
                                         ? 'bg-zx-nav-icon-hover text-[color:var(--zx-nav-icon-hover-text)] shadow-sm'
-                                        : 'bg-zx-nav-icon text-slate-700',
+                                        : 'bg-zx-nav-icon text-zx-text',
                                     globalStore.navMini &&
                                     child.key === globalStore.activeMenuKey
                                         ? 'border border-slate-300'
@@ -537,7 +537,7 @@ onUnmounted(() => {
                                 class="arrow-right flex-1 justify-end pr-3.5"
                             >
                                 <ChevronRight
-                                    class="h-3 w-3 text-slate-400 sm:h-3.5 sm:w-3.5"
+                                    class="h-3 w-3 text-zx-text-subtle sm:h-3.5 sm:w-3.5"
                                 />
                             </div>
                         </div>

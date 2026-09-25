@@ -7,8 +7,8 @@ import {
     Download,
     ChevronLeft,
     ChevronRight,
-    LayoutGrid,
     List,
+    LayoutGrid,
     Package,
     Pin,
     RotateCw,
@@ -23,8 +23,11 @@ import type { NbStorePlugin, StorePlugin } from "@/types/store.types";
 import PluginCard from "@/views/plugin/components/PluginCard/PluginCard.vue";
 import PluginConfigModal from "@/views/plugin/components/PluginConfigModal/PluginConfigModal.vue";
 import { ZXMessageBox, ZXNotification } from "@/services/ui";
-import { ZXDropdown } from "@/components/zxcomponent/ZXDropdown";
-import type { ZXDropdownOption } from "@/components/zxcomponent/ZXDropdown";
+import { ZXSelect } from "@/components/zxcomponent/ZXSelect";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
+import type { ZXSelectOption } from "@/components/zxcomponent/ZXSelect";
+import ZXInput from "@/components/zxcomponent/ZXInput.vue";
+import ZxSegmented from "@/components/zxcomponent/ZxSegmented.vue";
 import { usePluginStore } from "@/store/plugin.ts";
 import { useStoreStore } from "@/store/store.ts";
 import { useGlobalStore } from "@/store/global.ts";
@@ -140,7 +143,7 @@ const storeFilterType = ref<"all" | "installed" | "not-installed">("all");
 
 // 插件市场源，下拉只显示当前源
 const storeSource = ref<"zhenxun" | "nonebot">("zhenxun");
-const storeSourceOptions: ZXDropdownOption[] = [
+const storeSourceOptions: ZXSelectOption[] = [
     { label: "真寻源", value: "zhenxun" },
     { label: "NoneBot源", value: "nonebot" },
 ];
@@ -318,17 +321,7 @@ const pagedMarketCards = computed(() =>
         marketPage.value * MARKET_PAGE_SIZE,
     ),
 );
-// 页码窗口：总数超过 7 时以当前页居中滑动（本地/市场共用）
-const pageWindow = (page: number, total: number) => {
-    if (total <= 7) {
-        return Array.from({ length: total }, (_, i) => i + 1);
-    }
-    const start = Math.max(1, Math.min(page - 3, total - 6));
-    return Array.from({ length: 7 }, (_, i) => start + i);
-};
-const marketPageList = computed(() =>
-    pageWindow(marketPage.value, marketPageTotal.value),
-);
+
 
 const setMarketPage = (page: number) => {
     if (
@@ -363,9 +356,7 @@ const pagedLocalPlugins = computed(() =>
         localPage.value * LOCAL_PAGE_SIZE,
     ),
 );
-const localPageList = computed(() =>
-    pageWindow(localPage.value, localPageTotal.value),
-);
+
 
 const setLocalPage = (page: number) => {
     if (
@@ -397,9 +388,7 @@ const currentPageTotal = computed(() =>
         ? marketPageTotal.value
         : localPageTotal.value,
 );
-const currentPageList = computed(() =>
-    activeView.value === "market" ? marketPageList.value : localPageList.value,
-);
+
 const setCurrentPage = (page: number) => {
     if (activeView.value === "market") {
         setMarketPage(page);
@@ -544,6 +533,32 @@ const animateCardsIn = () => {
     );
 };
 
+/** 网格↔列表切换：轻量入场，比加载入场更短 */
+const animateLayoutSwitch = () => {
+    if (viewTransitioning) {
+        pendingCardAnim = true;
+        return;
+    }
+    const viewEl = activeViewEl();
+    if (!viewEl) return;
+    const cards = Array.from(viewEl.children);
+    if (!cards.length) return;
+    gsap.killTweensOf(cards);
+    gsap.fromTo(
+        cards,
+        { opacity: 0, y: 10, transition: "none" },
+        {
+            opacity: 1,
+            y: 0,
+            duration: 0.26,
+            stagger: 0.022,
+            ease: "power2.out",
+            clearProps: "all",
+            overwrite: true,
+        },
+    );
+};
+
 watch(currentLoading, (isLoading) => {
     if (!isLoading) nextTick(animateCardsIn);
 });
@@ -553,11 +568,18 @@ watch(filtersExpanded, async (expanded) => {
     await nextTick();
     const rows = headerRef.value?.querySelectorAll(".filter-row");
     if (!rows?.length) return;
-    gsap.fromTo(
-        rows,
-        { opacity: 0, y: -6 },
-        { opacity: 1, y: 0, duration: 0.25, ease: "power2.out", clearProps: "all" },
-    );
+    // 桌面：过滤与搜索同行靠右，从右侧滑入；窄屏：独立行，自上轻落
+    const from = globalStore.isDesktopMode
+        ? { opacity: 0, x: 10 }
+        : { opacity: 0, y: -6 };
+    gsap.fromTo(rows, from, {
+        opacity: 1,
+        x: 0,
+        y: 0,
+        duration: 0.25,
+        ease: "power2.out",
+        clearProps: "all",
+    });
 });
 
 // ==================== gsap 驱动的胶片式视图切换（横向版，同侧边栏切页） ====================
@@ -650,15 +672,31 @@ const viewMode = ref<"grid" | "list">(
     localStorage.getItem(VIEW_MODE_KEY) === "list" ? "list" : "grid",
 );
 
-const toggleViewMode = () => {
-    viewMode.value = viewMode.value === "grid" ? "list" : "grid";
-    localStorage.setItem(VIEW_MODE_KEY, viewMode.value);
+const viewModeOptions = [
+    { value: "grid" as const, label: "网格", icon: LayoutGrid },
+    { value: "list" as const, label: "列表", icon: List },
+];
+
+const onViewModeChange = (val: "grid" | "list") => {
+    viewMode.value = val;
+    localStorage.setItem(VIEW_MODE_KEY, val);
 };
 
 /** 移动端强制列表布局（不改用户的持久化偏好，回到桌面/平板自动还原） */
 const effectiveViewMode = computed(() =>
     globalStore.isMobileMode ? "list" : viewMode.value,
 );
+
+// 布局切换：先压暗旧布局，待新布局落地后再轻量入场
+watch(effectiveViewMode, async (val, oldVal) => {
+    if (val === oldVal) return;
+    const viewEl = activeViewEl();
+    if (viewEl?.children.length) {
+        gsap.set(Array.from(viewEl.children), { opacity: 0 });
+    }
+    await nextTick();
+    animateLayoutSwitch();
+});
 
 const switchView = (view: "local" | "market") => {
     if (activeView.value === view) return;
@@ -926,10 +964,10 @@ onDeactivated(() => {
             ref="headerRef"
             class="flex flex-col items-stretch gap-3 rounded-3xl border-1 border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-3 sm:p-4"
         >
-            <!-- 手机端刷新按钮（桌面/平板由 Island 呈现） -->
+            <!-- 手机端刷新按钮（桌面/平板由 Island 呈现；样式对齐动作圆钮） -->
             <button
                 v-if="globalStore.isMobileMode"
-                class="btn-touch flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:opacity-50"
+                class="btn-touch flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all hover:scale-105 hover:bg-gray-50 disabled:opacity-50"
                 title="刷新列表"
                 type="button"
                 :disabled="currentLoading"
@@ -942,7 +980,7 @@ onDeactivated(() => {
                 "
             >
                 <RotateCw
-                    class="h-4 w-4"
+                    class="h-4 w-4 text-zx-text-muted"
                     :class="{ 'animate-spin': currentLoading }"
                 />
             </button>
@@ -971,7 +1009,7 @@ onDeactivated(() => {
                         >已禁用
                         <span
                             v-odometer="pluginStats.inactive"
-                            class="font-black text-slate-500"
+                            class="font-black text-zx-text-muted"
                         ></span
                     ></span>
                     <span class="whitespace-nowrap"
@@ -1007,93 +1045,78 @@ onDeactivated(() => {
                 </template>
             </div>
 
-            <!-- 搜索框 + 筛选开关 -->
-            <div class="flex min-w-[200px] flex-1 items-center gap-2 sm:max-lg:basis-full">
-                <!-- 市场源切换（下拉只显示当前源；NoneBot 源暂未实现） -->
-                <ZXDropdown
+            <!-- 搜索框 + 筛选开关（桌面：限宽，与过滤同行；窄屏：占满并换行） -->
+            <div class="flex min-w-[200px] flex-1 items-center gap-2 sm:max-lg:basis-full lg:max-w-md">
+                <!-- 市场源切换（菜单下拉胶囊；NoneBot 源暂未实现） -->
+                <ZXSelect
                     v-if="activeView === 'market'"
                     :model-value="storeSource"
                     :options="storeSourceOptions"
-                    trigger-class="btn-touch flex h-[38px] flex-shrink-0 whitespace-nowrap rounded-full border border-slate-200 bg-gray-100 pl-3.5 pr-2.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700"
+                    mode="dropdown"
                     @update:model-value="handleStoreSourceChange"
                 />
-                <div
-                    class="flex min-w-0 flex-1 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-1.5 pl-3.5 pr-1.5 transition-colors focus-within:bg-white"
+                <ZXInput
+                    v-if="activeView === 'local'"
+                    v-model="searchKeyword"
+                    type="search"
+                    placeholder="搜索插件名称..."
+                    class="min-w-0 flex-1"
                 >
-                    <Search
-                        class="h-4 w-4 shrink-0 text-slate-400"
-                    />
-                    <input
-                        v-if="activeView === 'local'"
-                        v-model="searchKeyword"
-                        type="text"
-                        placeholder="搜索插件名称..."
-                        class="min-w-0 flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                    />
-                    <input
-                        v-else
-                        v-model="storeSearchKeyword"
-                        type="text"
-                        placeholder="搜索插件名称、模块、描述或作者..."
-                        class="min-w-0 flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                    />
-                    <button
-                        v-if="
-                            activeView === 'local'
-                                ? searchKeyword
-                                : storeSearchKeyword
-                        "
-                        class="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:text-slate-600"
-                        type="button"
-                        @click="
-                            activeView === 'local'
-                                ? (searchKeyword = '')
-                                : (storeSearchKeyword = '')
-                        "
-                    >
-                        <X class="h-4 w-4" />
-                    </button>
-                    <button
-                        class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors"
-                        :class="
-                            filtersExpanded
-                                ? 'text-zx-primary'
-                                : 'text-slate-400 hover:text-zx-primary'
-                        "
-                        title="筛选"
-                        type="button"
-                        @click="filtersExpanded = !filtersExpanded"
-                    >
-                        <SlidersHorizontal class="h-4 w-4" />
-                    </button>
-                </div>
-                <!-- 网格/列表切换（本地与市场共用；并入搜索行右端，移动端不再独占一行；移动端强制列表故隐藏） -->
-                <button
-                    v-if="!globalStore.isMobileMode"
-                    class="btn-touch flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-gray-100 text-zx-text-muted transition-colors hover:bg-gray-200 hover:text-zx-text"
-                    :title="viewMode === 'grid' ? '切换列表视图' : '切换网格视图'"
-                    type="button"
-                    @click="toggleViewMode"
+                    <template #suffix>
+                        <button
+                            class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors lg:hidden"
+                            :class="
+                                filtersExpanded
+                                    ? 'text-zx-primary'
+                                    : 'text-zx-text-subtle hover:text-zx-primary'
+                            "
+                            title="筛选"
+                            type="button"
+                            @click="filtersExpanded = !filtersExpanded"
+                        >
+                            <SlidersHorizontal class="h-4 w-4" />
+                        </button>
+                    </template>
+                </ZXInput>
+                <ZXInput
+                    v-else
+                    v-model="storeSearchKeyword"
+                    type="search"
+                    placeholder="搜索插件名称、模块、描述或作者..."
+                    class="min-w-0 flex-1"
                 >
-                    <List v-if="viewMode === 'grid'" class="h-4 w-4" />
-                    <LayoutGrid v-else class="h-4 w-4" />
-                </button>
+                    <template #suffix>
+                        <button
+                            class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors lg:hidden"
+                            :class="
+                                filtersExpanded
+                                    ? 'text-zx-primary'
+                                    : 'text-zx-text-subtle hover:text-zx-primary'
+                            "
+                            title="筛选"
+                            type="button"
+                            @click="filtersExpanded = !filtersExpanded"
+                        >
+                            <SlidersHorizontal class="h-4 w-4" />
+                        </button>
+                    </template>
+                </ZXInput>
             </div>
 
-            <!-- 状态 / 类型过滤（移动/平板默认收起，点「筛选」展开） -->
+            <!-- 状态 / 类型过滤（移动/平板默认收起，点「筛选」展开；桌面常显，视图切换跟在过滤右侧） -->
             <div
                 v-if="activeView === 'local'"
-                :class="!filtersExpanded ? 'hidden' : ''"
-                class="filter-row flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2"
+                :class="!filtersExpanded ? 'hidden lg:flex' : ''"
+                class="filter-row flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 lg:ml-auto lg:w-auto lg:justify-start lg:gap-x-6"
             >
                 <div class="flex items-center gap-1">
-                    <span class="flex-shrink-0 text-sm text-gray-600">状态:</span>
+                    <span class="flex-shrink-0 text-sm text-zx-text-muted">状态:</span>
                     <button
                         @click="statusFilter = 'all'"
                         :class="
                             statusFilter === 'all'
                                 ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)] shadow-2xs'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                         "
                         class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                     >
@@ -1104,7 +1127,7 @@ onDeactivated(() => {
                         :class="
                             statusFilter === 'active'
                                 ? 'bg-[#22c55e] text-white shadow-2xs'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                         "
                         class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                     >
@@ -1115,7 +1138,7 @@ onDeactivated(() => {
                         :class="
                             statusFilter === 'inactive'
                                 ? 'bg-[#9ca3af] text-white shadow-2xs'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                         "
                         class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                     >
@@ -1124,13 +1147,13 @@ onDeactivated(() => {
                 </div>
 
                 <div class="flex items-center gap-1">
-                    <span class="flex-shrink-0 text-sm text-gray-600">类型:</span>
+                    <span class="flex-shrink-0 text-sm text-zx-text-muted">类型:</span>
                     <button
                         @click="showBuiltin = !showBuiltin"
                         :class="
                             showBuiltin
                                 ? 'bg-[#8b5cf6] text-white shadow-2xs'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                         "
                         class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                     >
@@ -1141,7 +1164,7 @@ onDeactivated(() => {
                         :class="
                             showThird
                                 ? 'bg-[#f59e0b] text-white shadow-2xs'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                         "
                         class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                     >
@@ -1152,16 +1175,16 @@ onDeactivated(() => {
 
             <div
                 v-else
-                :class="!filtersExpanded ? 'hidden' : ''"
-                class="filter-row flex w-full flex-wrap items-center gap-1"
+                :class="!filtersExpanded ? 'hidden lg:flex' : ''"
+                class="filter-row flex w-full flex-wrap items-center gap-x-4 gap-y-2 lg:ml-auto lg:w-auto lg:gap-x-3"
             >
-                <span class="flex-shrink-0 text-sm text-gray-600">状态:</span>
+                <span class="flex-shrink-0 text-sm text-zx-text-muted">状态:</span>
                 <button
                     @click="storeFilterType = 'all'"
                     :class="
                         storeFilterType === 'all'
                             ? 'bg-zx-primary text-[color:var(--zx-color-on-primary)] shadow-2xs'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                     "
                     class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                 >
@@ -1172,7 +1195,7 @@ onDeactivated(() => {
                     :class="
                         storeFilterType === 'installed'
                             ? 'bg-[#22c55e] text-white shadow-2xs'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                     "
                     class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                 >
@@ -1183,13 +1206,23 @@ onDeactivated(() => {
                     :class="
                         storeFilterType === 'not-installed'
                             ? 'bg-[#9ca3af] text-white shadow-2xs'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            : 'bg-gray-100 text-zx-text-muted hover:bg-gray-200'
                     "
                     class="btn-touch cursor-pointer rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors"
                 >
                     未安装
                 </button>
             </div>
+
+            <!-- 视图切换：本地/市场共用同一实例，保证两侧完全一致 -->
+            <ZxSegmented
+                v-if="!globalStore.isMobileMode"
+                :model-value="viewMode"
+                :options="viewModeOptions"
+                size="md"
+                class="shrink-0"
+                @update:model-value="onViewModeChange"
+            />
 
         </div>
 
@@ -1204,7 +1237,7 @@ onDeactivated(() => {
                 v-if="currentLoading"
                 class="flex h-full items-center justify-center"
             >
-                <div class="text-center text-gray-400">
+                <div class="text-center text-zx-text-subtle">
                     <component
                         :is="activeView === 'local' ? Blocks : Package"
                         class="mx-auto mb-4 h-12 w-12 animate-pulse"
@@ -1213,23 +1246,18 @@ onDeactivated(() => {
                 </div>
             </div>
 
-            <div
+            <ZxEmptyState
                 v-else-if="
                     activeView === 'local'
                         ? filteredLocalPlugins.length === 0
                         : marketCards.length === 0
                 "
-                class="flex h-full items-center justify-center"
-            >
-                <div class="text-center text-gray-400">
-                    <component
-                        :is="activeView === 'local' ? Blocks : Package"
-                        class="mx-auto mb-4 h-16 w-16 opacity-50"
-                    />
-                    <p class="text-lg">没有找到插件</p>
-                    <p class="mt-2 text-sm">尝试调整搜索或过滤条件</p>
-                </div>
-            </div>
+                class="h-full"
+                :icon="activeView === 'local' ? Blocks : Package"
+                size="md"
+                text="没有找到插件"
+                sub-text="尝试调整搜索或过滤条件"
+            />
 
             <Transition
                 v-else
@@ -1306,48 +1334,15 @@ onDeactivated(() => {
             <!-- 分页（本地插件与市场共用，页码取当前视图的分页状态） -->
             <div
                 v-if="!currentLoading && currentCount > 0 && currentPageTotal > 1"
-                class="flex items-center justify-center gap-1 pb-1 pt-4"
+                class="flex justify-center pb-1 pt-4"
             >
-                <button
-                    class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                    :class="
-                        currentPage === 1
-                            ? 'text-gray-300'
-                            : 'text-gray-500 hover:bg-gray-100'
-                    "
-                    :disabled="currentPage === 1"
-                    type="button"
-                    @click="setCurrentPage(currentPage - 1)"
-                >
-                    <ChevronLeft class="h-4 w-4" />
-                </button>
-                <button
-                    v-for="page in currentPageList"
-                    :key="page"
-                    class="btn-touch h-8 min-w-8 cursor-pointer rounded-full px-2 text-sm transition-colors"
-                    :class="
-                        page === currentPage
-                            ? 'bg-zx-primary font-medium text-[color:var(--zx-color-on-primary)]'
-                            : 'text-gray-500 hover:bg-gray-100'
-                    "
-                    type="button"
-                    @click="setCurrentPage(page)"
-                >
-                    {{ page }}
-                </button>
-                <button
-                    class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                    :class="
-                        currentPage === currentPageTotal
-                            ? 'text-gray-300'
-                            : 'text-gray-500 hover:bg-gray-100'
-                    "
-                    :disabled="currentPage === currentPageTotal"
-                    type="button"
-                    @click="setCurrentPage(currentPage + 1)"
-                >
-                    <ChevronRight class="h-4 w-4" />
-                </button>
+                <ZxPagination
+                    :page="currentPage"
+                    :total-pages="currentPageTotal"
+                    :show-total="false"
+                    align="center"
+                    @change="setCurrentPage"
+                />
             </div>
         </div>
 

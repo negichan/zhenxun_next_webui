@@ -12,10 +12,6 @@ const list = computed(() => systemStore.commits || []);
 const loading = computed(() => systemStore.commitsLoading);
 
 // 头像加载状态管理
-const avatarLoadedMap = ref<Record<number, boolean>>({});
-const onAvatarLoad = (index: number) => {
-    avatarLoadedMap.value[index] = true;
-};
 
 /**
  * 🧠 GitHub 风格时间转换
@@ -60,7 +56,7 @@ function formatTime(dateStr: string) {
             class="mb-2 flex shrink-0 items-center gap-2 border-b border-slate-100 pb-4"
         >
             <History class="h-5 w-5 text-zx-primary" />
-            <h3 class="text-sm font-semibold text-gray-700 sm:text-base">
+            <h3 class="text-sm font-semibold text-zx-text sm:text-base">
                 历史更新
             </h3>
         </div>
@@ -88,7 +84,7 @@ function formatTime(dateStr: string) {
 
             <ul
                 v-else
-                class="custom-scrollbar h-full space-y-3 overflow-y-auto pt-2 pr-2"
+                class="h-full space-y-3 overflow-y-auto pt-2 pr-2"
             >
                         <li
                             v-for="(item, index) in list"
@@ -114,31 +110,22 @@ function formatTime(dateStr: string) {
                                 class="-mt-1 mb-4 flex flex-1 flex-col break-words"
                             >
                                 <div
-                                    class="mb-2 text-xs font-semibold text-slate-600"
+                                    class="mb-2 text-xs font-semibold text-zx-text-muted"
                                 >
                                     {{ item?.message }}
                                 </div>
                                 <div
-                                    class="flex items-center space-x-2 text-xs text-slate-500"
+                                    class="flex items-center space-x-2 text-xs text-zx-text-muted"
                                 >
-                                    <div
-                                        v-if="!avatarLoadedMap[index]"
-                                        class="mr-1 h-4 w-4"
-                                    >
-                                        <span
-                                            class="block h-4 w-4 animate-pulse rounded-full bg-slate-200"
-                                        ></span>
-                                    </div>
-
-                                    <img
-                                        v-show="avatarLoadedMap[index]"
+                                    <ZxAvatar
                                         :src="item?.avatar_url"
-                                        class="mr-1 h-4 w-4 rounded-full ring-1 ring-gray-200"
-                                        @load="onAvatarLoad(index)"
+                                        :name="item?.author"
+                                        size="xs"
+                                        class="mr-1 !h-4 !w-4 ring-1 ring-gray-200"
                                     />
 
                                     <span
-                                        class="text-xs font-medium text-slate-700"
+                                        class="text-xs font-medium text-zx-text"
                                         >{{ item?.author }}</span
                                     >
                                     <span>{{ formatTime(item.date) }}</span>
@@ -149,20 +136,3 @@ function formatTime(dateStr: string) {
         </div>
     </div>
 </template>
-
-<style scoped>
-/* 美化滚动条 */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--zx-color-border);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-slate-300);
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-</style>

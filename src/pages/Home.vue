@@ -327,10 +327,11 @@ const onGlobalDragStart = (e: DragEvent) => {
                         ? 'pointer-events-none opacity-45 blur-[1.5px]'
                         : ''
                 "
-                class="right relative flex h-full flex-1 flex-col px-2 pb-2 sm:pl-4 sm:pr-0 sm:pb-4 transition-[opacity,filter] duration-200 ease-out"
+                class="right relative flex h-full flex-1 flex-col pr-2 pb-2 sm:pr-0 sm:pb-0 transition-[opacity,filter] duration-200 ease-out"
             >
-                <!-- 胶片带容器：overflow 裁掉上下页，位移时不会顶出滚动条 -->
-                <div class="page-strip relative min-h-0 flex-1 overflow-hidden">
+                <!-- 胶片带容器：overflow 裁掉上下页，位移时不会顶出滚动条。
+                     main landmark：所有子页面共用这一个内容主区 -->
+                <main class="page-strip relative min-h-0 flex-1 overflow-hidden">
                     <router-view v-slot="{ Component }">
                         <Transition
                             :css="false"
@@ -346,7 +347,7 @@ const onGlobalDragStart = (e: DragEvent) => {
                             </KeepAlive>
                         </Transition>
                     </router-view>
-                </div>
+                </main>
             </div>
         </div>
     </div>
@@ -364,11 +365,11 @@ const onGlobalDragStart = (e: DragEvent) => {
         <div class="relative flex items-center justify-center">
             <ChevronRight
                 v-if="globalStore.navHidden"
-                class="h-4 w-4 text-slate-500 transition-all duration-300 group-hover:text-indigo-600"
+                class="h-4 w-4 text-zx-text-muted transition-all duration-300 group-hover:text-indigo-600"
             />
             <ChevronLeft
                 v-else
-                class="h-4 w-4 text-slate-500 transition-all duration-300 group-hover:text-indigo-600"
+                class="h-4 w-4 text-zx-text-muted transition-all duration-300 group-hover:text-indigo-600"
             />
         </div>
     </div>
@@ -388,12 +389,19 @@ const onGlobalDragStart = (e: DragEvent) => {
     height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* 左/下留白放在滚动容器内部：卡片阴影渲染进留白区，
+       不会被 overflow 在容器边缘硬裁（与右侧 padding-right 同理）。
+       外层 .right 不再留左/下边距，页面内容的几何位置不变 */
+    padding-left: 0.5rem;
+    padding-bottom: 0.5rem;
 }
 
 /* 桌面端滚动条贴屏幕右缘：右列不再留白，内容边距由页面滚动容器内部给出 */
 @media (min-width: 640px) {
     .page-strip > :deep(*) {
         padding-right: 1rem;
+        padding-left: 1rem;
+        padding-bottom: 1rem;
     }
 }
 </style>

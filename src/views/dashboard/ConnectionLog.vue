@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { PlugZap } from "lucide-vue-next";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import { useConnectionLogStore } from "@/store/connectionLog.ts";
 import { useBotStore } from "@/store/bot";
 import { storeToRefs } from "pinia";
-import defaultAva from "@/assets/img/avatar.jpg";
+import defaultAva from "@/assets/img/avatar.webp";
 
 const logStore = useConnectionLogStore();
 const { entries } = storeToRefs(logStore);
@@ -97,12 +98,12 @@ function formatTime(time: number) {
             class="mb-2 flex shrink-0 items-center gap-2 border-b border-slate-100 pb-4"
         >
             <PlugZap class="h-5 w-5 text-zx-primary" />
-            <h3 class="text-sm font-semibold text-gray-700 sm:text-base">
+            <h3 class="text-sm font-semibold text-zx-text sm:text-base">
                 连接日志
             </h3>
             <span
                 v-if="displayEntries.length > 0"
-                class="ml-auto rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-400"
+                class="ml-auto rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-zx-text-subtle"
             >
                 {{ displayEntries.length }}
             </span>
@@ -112,7 +113,7 @@ function formatTime(time: number) {
         <div
             v-if="displayEntries.length > 0"
             ref="container"
-            class="custom-scrollbar min-h-0 flex-1 overflow-y-auto pr-1"
+            class="min-h-0 flex-1 overflow-y-auto pr-1"
             @scroll.passive="onScroll"
         >
             <div
@@ -129,10 +130,11 @@ function formatTime(time: number) {
                     }"
                 >
                     <div class="relative shrink-0">
-                        <img
+                        <ZxAvatar
                             :src="entry.avaUrl"
-                            alt=""
-                            class="h-10 w-10 rounded-full object-cover ring-1 ring-slate-200"
+                            :name="entry.nickname"
+                            size="md"
+                            class="ring-1 ring-slate-200"
                         />
                         <!-- 在线状态角标 -->
                         <span
@@ -147,12 +149,12 @@ function formatTime(time: number) {
 
                     <div class="min-w-0 flex-1 leading-tight">
                         <p
-                            class="truncate text-sm font-semibold leading-5 text-slate-700"
+                            class="truncate text-sm font-semibold leading-5 text-zx-text"
                         >
                             {{ entry.nickname }}
                         </p>
                         <p
-                            class="mt-1 truncate text-xs leading-4 text-slate-400"
+                            class="mt-1 truncate text-xs leading-4 text-zx-text-subtle"
                         >
                             {{ entry.botId }}
                         </p>
@@ -178,7 +180,7 @@ function formatTime(time: number) {
                             {{ entry.type === "online" ? "上线" : "下线" }}
                         </span>
                         <span
-                            class="mt-1 text-[11px] leading-4 text-slate-400"
+                            class="mt-1 text-[11px] leading-4 text-zx-text-subtle"
                         >
                             {{ formatTime(entry.time) }}
                         </span>
@@ -187,27 +189,11 @@ function formatTime(time: number) {
             </div>
         </div>
 
-        <p
+        <div
             v-else
-            class="flex flex-1 items-center justify-center text-xs text-[var(--zx-color-text-subtle)]"
+            class="flex flex-1 items-center justify-center"
         >
-            暂无连接记录
-        </p>
+            <ZxEmptyState size="sm" text="暂无连接记录" />
+        </div>
     </div>
 </template>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--zx-color-border);
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-slate-300);
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-</style>

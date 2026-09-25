@@ -174,14 +174,15 @@ onMounted(() => {
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 bg-white rounded-3xl shadow-sm p-4 border border-slate-200">
             <div class="flex items-center space-x-3">
                 <Users class="h-6 w-6 text-zx-primary flex-shrink-0" />
-                <h2 class="text-lg font-semibold text-gray-800">好友管理</h2>
-                <span class="text-sm text-gray-500">(共 {{ filteredFriends.length }} 个)</span>
+                <h2 class="text-lg font-semibold text-zx-text-strong">好友管理</h2>
+                <span class="text-sm text-zx-text-muted">(共 {{ filteredFriends.length }} 个)</span>
             </div>
 
             <!-- 搜索框 -->
             <div class="w-full sm:w-72">
-                <ZxSearchInput
+                <ZXInput
                     v-model="searchQuery"
+                    type="search"
                     placeholder="搜索好友昵称或 ID..."
                 />
             </div>
@@ -195,14 +196,14 @@ onMounted(() => {
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-3">
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-3 text-center">
                         <div class="text-lg sm:text-xl font-bold text-zx-primary">{{ stats.total }}</div>
-                        <div class="text-xs text-gray-500 mt-0.5">好友总数</div>
+                        <div class="text-xs text-zx-text-muted mt-0.5">好友总数</div>
                     </div>
                 </div>
 
                 <!-- 好友列表 -->
                 <div class="flex-1 overflow-y-auto">
                     <div v-if="loading" class="flex items-center justify-center h-full">
-                        <div class="text-center text-gray-400">
+                        <div class="text-center text-zx-text-subtle">
                             <Users class="w-12 h-12 mx-auto mb-4 animate-pulse" />
                             <p>加载中...</p>
                         </div>
@@ -245,7 +246,7 @@ onMounted(() => {
             <!-- 右侧：好友详情面板 -->
             <div class="hidden lg:flex lg:flex-col w-80 flex-shrink-0 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <!-- 未选中状态 -->
-                <div v-if="!selectedFriend" class="flex-1 flex flex-col items-center justify-center text-gray-400 p-6">
+                <div v-if="!selectedFriend" class="flex-1 flex flex-col items-center justify-center text-zx-text-subtle p-6">
                     <UserCircle class="w-16 h-16 mb-4 opacity-30" />
                     <p class="text-sm text-center">点击左侧好友卡片<br/>查看详细信息</p>
                 </div>
@@ -284,9 +285,9 @@ onMounted(() => {
                     <div class="modal-content relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
                     <!-- 头部 -->
                     <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
-                        <h3 class="text-lg font-semibold text-gray-800">发送消息</h3>
+                        <h3 class="text-lg font-semibold text-zx-text-strong">发送消息</h3>
                         <button @click="sendMessageDialogOpen = false" class="p-1 rounded-2xl hover:bg-white/50 transition-colors">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-zx-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
@@ -296,18 +297,18 @@ onMounted(() => {
                     <div class="flex-1 overflow-y-auto p-6">
                         <div v-if="currentFriend" class="send-message-form">
                             <div class="message-target">
-                                <img :src="currentFriend.ava_url" class="message-target-avatar" />
+                                <ZxAvatar :src="currentFriend.ava_url" :name="currentFriend.nickname" size="md" class="message-target-avatar" />
                                 <div class="message-target-info">
                                     <span class="message-target-name">{{ currentFriend.nickname }}</span>
                                     <span class="message-target-id">{{ currentFriend.user_id }}</span>
                                 </div>
                             </div>
-                            <textarea
+                            <ZXInput
                                 v-model="messageContent"
-                                rows="6"
+                                type="textarea"
+                                :rows="6"
                                 placeholder="输入消息内容..."
-                                class="message-input w-full resize-y rounded-2xl border bg-white px-3 py-2 text-sm text-gray-700 transition-all placeholder:text-gray-400 focus:outline-none"
-                            ></textarea>
+                            />
                             <div class="dialog-actions">
                                 <ZxButton variant="ghost" @click="sendMessageDialogOpen = false">取消</ZxButton>
                                 <ZxButton @click="confirmSendMessage">发送</ZxButton>
@@ -355,38 +356,10 @@ onMounted(() => {
     font-family: monospace;
 }
 
-.message-input {
-    border-color: var(--zx-color-border);
-}
-
-.message-input:focus {
-    border-color: var(--zx-color-primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--zx-color-primary) 16%, transparent);
-}
-
 .dialog-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
     margin-top: 16px;
-}
-
-/* 自定义滚动条样式 */
-.overflow-y-auto::-webkit-scrollbar {
-    width: 8px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-    background: var(--zx-color-border-soft);
-    border-radius: 4px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-    background: var(--zx-slate-300);
-    border-radius: 4px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-color-text-subtle);
 }
 </style>

@@ -45,16 +45,18 @@ const handleLeaveGroup = () => {
             <!-- 头部：群组信息 + 状态 -->
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-3 min-w-0">
-                    <img
+                    <ZxAvatar
                         :src="group.ava_url"
-                        :alt="group.group_name"
-                        class="w-12 h-12 rounded-2xl object-cover flex-shrink-0 border border-slate-200"
+                        :name="group.group_name"
+                        size="lg"
+                        shape="square"
+                        class="flex-shrink-0 border border-slate-200"
                     />
                     <div class="min-w-0 flex-1">
-                        <h3 class="text-base font-bold text-gray-800 truncate" :title="group.group_name">
+                        <h3 class="text-base font-bold text-zx-text-strong truncate" :title="group.group_name">
                             {{ group.group_name }}
                         </h3>
-                        <p class="text-xs text-gray-500 mt-0.5">
+                        <p class="text-xs text-zx-text-muted mt-0.5">
                             ID: {{ group.group_id }}
                         </p>
                     </div>
@@ -70,11 +72,11 @@ const handleLeaveGroup = () => {
             </div>
 
             <!-- 成员数量 -->
-            <div class="flex items-center gap-1.5 text-sm text-gray-600">
-                <Users class="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div class="flex items-center gap-1.5 text-sm text-zx-text-muted">
+                <Users class="w-4 h-4 text-zx-text-subtle flex-shrink-0" />
                 <span class="font-medium">{{ group.member_count || 0 }}</span>
-                <span class="text-gray-400">人</span>
-                <span v-if="group.max_member_count" class="text-gray-400">/ {{ group.max_member_count }}</span>
+                <span class="text-zx-text-subtle">人</span>
+                <span v-if="group.max_member_count" class="text-zx-text-subtle">/ {{ group.max_member_count }}</span>
             </div>
         </div>
 

@@ -2,8 +2,6 @@
 import { computed, reactive, ref, watch } from "vue";
 import {
     Check,
-    ChevronLeft,
-    ChevronRight,
     Pencil,
     Plus,
     Trash2,
@@ -303,7 +301,7 @@ const isLongText = (col: TableColumn) => {
 
         <!-- 加载 / 空 -->
         <div v-if="loading" class="flex min-h-0 flex-1 items-center justify-center">
-            <div class="text-center text-gray-400">
+            <div class="text-center text-zx-text-subtle">
                 <div
                     class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-zx-primary border-b-transparent"
                 />
@@ -345,7 +343,7 @@ const isLongText = (col: TableColumn) => {
                             <th
                                 v-for="col in columns"
                                 :key="col.name"
-                                class="border-b border-gray-200 px-3 py-2.5 text-left text-xs font-medium tracking-wider whitespace-nowrap text-gray-500"
+                                class="border-b border-gray-200 px-3 py-2.5 text-left text-xs font-medium tracking-wider whitespace-nowrap text-zx-text-muted"
                             >
                                 <span class="flex items-center gap-1">
                                     {{ col.name }}
@@ -359,7 +357,7 @@ const isLongText = (col: TableColumn) => {
                                 </span>
                             </th>
                             <th
-                                class="border-b border-gray-200 px-2 py-2.5 text-right text-xs font-medium whitespace-nowrap text-gray-500"
+                                class="border-b border-gray-200 px-2 py-2.5 text-right text-xs font-medium whitespace-nowrap text-zx-text-muted"
                             >
                                 操作
                             </th>
@@ -474,33 +472,13 @@ const isLongText = (col: TableColumn) => {
                 </table>
             </div>
 
-            <div
-                class="flex flex-shrink-0 items-center justify-between gap-2 border-t border-gray-100 p-3"
-            >
-                <span class="text-sm text-gray-500">{{ pageInfo }}</span>
-                <div class="flex items-center gap-2">
-                    <ZxButton
-                        variant="ghost"
-                        circle
-                        size="sm"
-                        :disabled="page <= 1"
-                        @click="emit('change-page', -1)"
-                    >
-                        <ChevronLeft class="h-4 w-4" />
-                    </ZxButton>
-                    <span class="text-xs text-gray-500">
-                        {{ page }} / {{ totalPages }}
-                    </span>
-                    <ZxButton
-                        variant="ghost"
-                        circle
-                        size="sm"
-                        :disabled="page >= totalPages"
-                        @click="emit('change-page', 1)"
-                    >
-                        <ChevronRight class="h-4 w-4" />
-                    </ZxButton>
-                </div>
+            <div class="border-t border-gray-100 p-3">
+                <ZxPagination
+                    :page="page"
+                    :total-pages="totalPages"
+                    :summary-text="pageInfo"
+                    @change-delta="(delta) => emit('change-page', delta)"
+                />
             </div>
         </div>
     </div>
