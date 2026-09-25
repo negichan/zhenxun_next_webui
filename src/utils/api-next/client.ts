@@ -11,6 +11,24 @@ import type { APIResponse } from '@/types/api-next.types'
 
 const API_V1_BASE = '/zhenxun/api/v1'
 
+/** 拦截层通知截流：同文案在窗口期内只弹一次 */
+const NOTIFY_DEDUP_MS = 8000
+const notifySeenAt = new Map<string, number>()
+
+function shouldNotifyOnce(title: string, message: string, type: string) {
+    const key = `${type}|${title}|${message.trim().replace(/\s+/g, ' ')}`
+    const now = Date.now()
+    const last = notifySeenAt.get(key)
+    if (last && now - last < NOTIFY_DEDUP_MS) return false
+    notifySeenAt.set(key, now)
+    if (notifySeenAt.size > 100) {
+        for (const [k, t] of notifySeenAt) {
+            if (now - t > NOTIFY_DEDUP_MS) notifySeenAt.delete(k)
+        }
+    }
+    return true
+}
+
 export const getPort = () => localStorage.getItem('port') || window.location.port || '8080'
 
 export const setPort = (port: string) => localStorage.setItem('port', port)
@@ -35,11 +53,12 @@ export const updateApiBaseUrl = () => {
 }
 
 // ==================== Mock 模式接入 ====================
-// virtual:mock-api 由 vite.config.ts 的开关决定指向真实 mock server 还是空实现，
-// 关闭/生产构建时 mockAdapter 为 undefined，src/mocks 不会进入产物
+// dev：virtual:mock-api 指向真实 mock server，由设置 → 实验性功能的运行时开关决定是否接管；
+// 生产构建：空实现 mockAdapter 为 undefined，src/mocks 不会进入产物
 import { mockAdapter } from 'virtual:mock-api'
+import { MOCK_MODE, isMockEnabled } from 'virtual:mock-mode'
 
-if (mockAdapter) {
+if (MOCK_MODE && mockAdapter && isMockEnabled()) {
     apiClient.defaults.adapter = mockAdapter
 }
 // =========================================================
@@ -72,13 +91,20 @@ apiClient.interceptors.response.use(
             return Promise.reject(error)
         }
 
+        // Mock 未实现路由：只留控制台，不弹通知（否则轮询会连刷）
+        if ((error as any)?.isMockError) {
+            return Promise.reject(error)
+        }
+
+        // 拦截层截流：同文案在窗口期内只弹一次（双保险，覆盖高频失败）
         const showNotification = (
             title: string,
             message: string,
             type: 'success' | 'error' | 'warning' | 'info',
             sticker?: string
         ) => {
-            ZXNotification({ title, message, type, sticker, position: 'top-right' as const })
+            if (!shouldNotifyOnce(title, message, type)) return
+            ZXNotification({ title, message, type, sticker, position: 'top-right' as const, dedupe: false })
         }
 
         if (error.code === 'ECONNABORTED') {

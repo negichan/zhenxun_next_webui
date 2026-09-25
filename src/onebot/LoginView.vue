@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
- * 调试客户端登录页：复刻主站登录页（Login.vue）的视觉设计
+ * OneBot 模拟端登录页：复刻主站登录页（Login.vue）的视觉设计
  * （烟雾背景 + 白边卡片 + logo + 白色表单卡），仅登录逻辑换成
- * 调试端自己的精简 API 客户端，并增加可折叠的后端地址设置。
+ * 模拟端自己的精简 API 客户端，并增加可折叠的后端地址设置。
  */
 import { reactive, ref } from "vue";
 import { ChevronDown, Server } from "lucide-vue-next";
 import ZXInput from "@/components/zxcomponent/ZXInput.vue";
 import ZXNotification from "@/components/zxcomponent/Notification";
-import logo_img from "@/assets/img/title.png";
+import logo_img from "@/assets/img/title.webp";
 import { poster_img } from "@/utils/poster";
 import {
     authApi,
@@ -143,7 +143,7 @@ const submitLogin = async () => {
                 class="right-area z-2 flex flex-1 flex-col justify-center rounded-r-2xl py-6 backdrop-blur-xl max-sm:pb-0"
             >
                 <div
-                    class="title mb-4 flex justify-center text-3xl font-bold text-slate-800"
+                    class="title mb-4 flex justify-center text-3xl font-bold text-zx-text-strong"
                 >
                     <img
                         :src="logo_img"
@@ -152,7 +152,7 @@ const submitLogin = async () => {
                     />
                 </div>
                 <div
-                    class="login mx-30 flex flex-col space-y-8 rounded-3xl bg-white px-8 pt-12 pb-6 text-sm text-gray-700 shadow-sm max-sm:m-2 max-sm:px-10"
+                    class="login mx-30 flex flex-col space-y-8 rounded-3xl bg-white px-8 pt-12 pb-6 text-sm text-zx-text shadow-sm max-sm:m-2 max-sm:px-10"
                 >
                     <div class="user space-y-2">
                         <div class="title font-bold">用户名</div>
@@ -206,7 +206,7 @@ const submitLogin = async () => {
                                 />
                             </div>
                         </div>
-                        <p class="text-xs text-slate-400">
+                        <p class="text-xs text-zx-text-subtle">
                             与主站同域部署时保持默认即可
                         </p>
                     </div>

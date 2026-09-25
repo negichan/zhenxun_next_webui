@@ -186,12 +186,12 @@ register(['set_essence_msg', 'delete_essence_msg'], () => null)
 // ==================== 好友 / 请求 ====================
 
 register('set_friend_add_request', (_ctx, p) => {
-    // 调试端发出的好友申请 flag 形如 "debug_friend_req:<user_id>|<nickname>"，
+    // 调试端发出的好友申请 flag 形如 "onebot_friend_req:<user_id>|<nickname>"，
     // 审批通过时把申请人加入好友列表
     const flag = String(p.flag ?? '')
-    if (flag.startsWith('debug_friend_req:')) {
+    if (flag.startsWith('onebot_friend_req:')) {
         const [userIdStr, nickname] = flag
-            .slice('debug_friend_req:'.length)
+            .slice('onebot_friend_req:'.length)
             .split('|')
         const userId = Number(userIdStr)
         if (p.approve !== false && userId && !simState.friends.some(f => f.user_id === userId)) {

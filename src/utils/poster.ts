@@ -1,5 +1,5 @@
 import { ref, type Ref } from "vue";
-import poster_src from "@/assets/img/img.png";
+import poster_src from "@/assets/img/img.webp";
 
 /*
  * 海报抠图:在 Canvas 里一次性烘焙出透明版海报(与原 SVG remove-white 滤镜

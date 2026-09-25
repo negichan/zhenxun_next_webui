@@ -12,6 +12,7 @@ import type {
     GoldRank,
     AnalyticsOverview,
     MessageHeatmap,
+    WordCloudData,
 } from '@/types/api-next.types'
 
 export const analyticsApi = {
@@ -82,5 +83,17 @@ export const analyticsApi = {
      */
     getGoldTop10(bot_id?: string): Promise<APIResponse<GoldRank[]>> {
         return api.get('/analytics/gold-top10', { bot_id })
+    },
+
+    /**
+     * 获取区间消息词云
+     */
+    getWordCloud(params: {
+        start_time: string
+        end_time: string
+        bot_id?: string
+        limit?: number
+    }): Promise<APIResponse<WordCloudData>> {
+        return api.get<WordCloudData>('/analytics/word-cloud', params)
     },
 }

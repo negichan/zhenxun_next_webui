@@ -22,8 +22,18 @@ const routes = [
         name: "Bot",
         // OneBot Bot 端（模拟端）：弹窗窗口加载主站同包的该路由，
         // 自带登录与后端指向，不走主站登录守卫
-        component: () => import("@/views/debug/DebugShell.vue"),
+        component: () => import("@/views/onebot/OneBotShell.vue"),
     },
+    // UI 组件与设计规范独立页面：仅在开发期注册，生产构建不打包
+    ...(import.meta.env.DEV
+        ? [
+              {
+                  path: "/ui",
+                  name: "UI",
+                  component: () => import("@/views/ui/UI.vue"),
+              },
+          ]
+        : []),
     {
         path: "/",
         name: "Home",
@@ -81,12 +91,18 @@ const routes = [
                 path: "/logs",
                 redirect: "/dashboard",
             },
-            {
-                path: "/ext/test",
-                name: "扩展测试",
-                component: () => import("@/views/extension/ExtensionTest.vue"),
-                meta: { menuKey: "ext-test" },
-            },
+            // 扩展测试页仅服务开发期：生产构建整段剔除，产物中不打包该页面与路由
+            ...(import.meta.env.DEV
+                ? [
+                      {
+                          path: "/ext/test",
+                          name: "扩展测试",
+                          component: () =>
+                              import("@/views/extension/ExtensionTest.vue"),
+                          meta: { menuKey: "ext-test" },
+                      },
+                  ]
+                : []),
             {
                 path: "/config",
                 name: "配置",
@@ -99,16 +115,6 @@ const routes = [
                 redirect: "/chat",
                 meta: { menuKey: "manage" },
             },
-            // UI 风格参考页只服务开发期：用 DEV 分支注册，生产构建整段被剔除，产物里不留路由与分块
-            ...(import.meta.env.DEV
-                ? [
-                      {
-                          path: "/ui-style",
-                          name: "UI 风格参考",
-                          component: () => import("@/views/ui-style/UIStyle.vue"),
-                      },
-                  ]
-                : []),
         ],
     },
     {
@@ -235,8 +241,13 @@ router.beforeEach(
         }
 
         // 如果用户未认证且尝试访问非登录页面，则重定向到登录页
-        // 未认证不允许进业务页面（/bot 是独立 Bot 端，自带登录，豁免）
-        if (to.name !== "Login" && to.name !== "Bot" && !isAuthenticated) {
+        // 未认证不允许进业务页面（/bot 是独立 Bot 端；/ui 是独立设计规范页，均豁免）
+        if (
+            to.name !== "Login" &&
+            to.name !== "Bot" &&
+            to.name !== "UI" &&
+            !isAuthenticated
+        ) {
             if (to.path === "/") {
                 ZXNotification({
                     title: "欢迎光临~",
