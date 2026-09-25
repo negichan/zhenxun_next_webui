@@ -349,7 +349,7 @@ defineExpose({ open });
                 <button
                     type="button"
                     title="点击复位"
-                    class="btn-touch min-w-12 rounded-full px-1 text-center text-xs font-medium text-slate-500 transition-colors hover:text-zx-primary"
+                    class="btn-touch min-w-12 rounded-full px-1 text-center text-xs font-medium text-zx-text-muted transition-colors hover:text-zx-primary"
                     @click="resetTransform"
                 >
                     {{ scalePercent }}

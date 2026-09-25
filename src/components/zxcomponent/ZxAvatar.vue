@@ -40,9 +40,17 @@ const props = withDefaults(defineProps<Props>(), {
 
 const isError = ref(false);
 
+// qlogo s=640 单张可达数百 KB；组件最大档 xl 只有 64px，2x 屏 128px，
+// lg/xl 取 160 档、其余取 100 档已足够清晰
+const qqAvatarUrl = computed(() => {
+    if (!props.qq) return "";
+    const s = props.size === "lg" || props.size === "xl" ? 160 : 100;
+    return `https://q1.qlogo.cn/g?b=qq&nk=${props.qq}&s=${s}`;
+});
+
 const effectiveSrc = computed(() => {
     if (props.src) return props.src;
-    if (props.qq) return `https://q1.qlogo.cn/g?b=qq&nk=${props.qq}&s=640`;
+    if (props.qq) return qqAvatarUrl.value;
     return "";
 });
 
@@ -109,7 +117,7 @@ const shapeClasses = computed(() => {
         <!-- 图标缺省兜底 -->
         <div
             v-else
-            class="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400 transition-colors"
+            class="flex h-full w-full items-center justify-center bg-slate-100 text-zx-text-subtle transition-colors"
         >
             <component :is="icon ? markRaw(icon) : markRaw(User)" class="h-1/2 w-1/2" />
         </div>

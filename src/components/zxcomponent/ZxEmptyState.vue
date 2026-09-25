@@ -82,7 +82,7 @@ const stickerUrl = computed(() => (props.sticker ? resolveStickerUrl(props.stick
                         size === 'sm' && 'h-5 w-5',
                         size === 'md' && 'h-7 w-7',
                         size === 'lg' && 'h-10 w-10',
-                        iconClass || 'text-slate-300',
+                        iconClass || 'text-zx-text-subtle',
                     ]"
                 />
             </div>

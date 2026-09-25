@@ -14,10 +14,10 @@
                 </div>
                 <div
                     class="right-area flex-1 flex flex-col px-[10%] pt-16 pb-8 z-2 rounded-r-2xl space-y-8  max-md:rounded-t-2xl max-md:shadow-[0_3px_10px_rgb(0,0,0,0.2)]">
-                    <div class="title text-4xl font-bold text-slate-800 tracking-wide">
+                    <div class="title text-4xl font-bold text-zx-text-strong tracking-wide">
                         API地址设置
                     </div>
-                    <div class="ip-port text-gray-700 mb-8 text-sm   relative space-y-6">
+                    <div class="ip-port text-zx-text mb-8 text-sm   relative space-y-6">
                         <div class="ip space-y-2">
                             <div class="title font-bold ">
                                 地址
@@ -55,7 +55,7 @@
                                 </div>
                             </div>
                             <button
-                                class="w-20 cursor-pointer  items-center rounded-2xl bg-green-600 py-1 px-4 border border-transparent text-center text-lg text-white transition-all shadow-sm hover:shadow-md hover:bg-green-500  disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
+                                class="w-20 cursor-pointer  items-center rounded-2xl bg-green-600 py-1 px-4 border border-transparent text-center text-lg text-white transition-all shadow-sm hover:shadow-md hover:bg-zx-success-soft0  disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
                                 type="button"
                                 @click="testAddress">
                                 测试
@@ -91,9 +91,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="rt absolute right-0 top-0 -translate-y-5/8 translate-1/5 z-2  max-md:hidden">
-                    <img :src="right_top_img" alt="" class="w-50">
-                </div>
             </div>
             </div>
         </Transition>
@@ -125,7 +122,6 @@ const updateRequestUrl = (url, port) => {
  */
 
 import { rawPoster } from "@/utils/poster";
-import right_top_img from "@/assets/img/2.png";
 import ZXInput from "@/components/zxcomponent/ZXInput.vue";
 
 /*
