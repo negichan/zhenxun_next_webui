@@ -16,7 +16,7 @@ const getTrendIcon = (trend: Trend | undefined) => {
         case "down":
             return { icon: TrendingDown, color: "text-red-500" };
         default:
-            return { icon: Minus, color: "text-gray-400" };
+            return { icon: Minus, color: "text-zx-text-subtle" };
     }
 };
 </script>

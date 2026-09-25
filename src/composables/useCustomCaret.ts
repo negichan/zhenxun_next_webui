@@ -198,10 +198,15 @@ export function useCustomCaret(editorRef: Ref<HTMLElement | null>) {
     };
 
     /** 内容是否还有东西：非空文本节点 / 图片算有，
-     *  占位 <br> 和空行块（<div><br></div>）不算 */
+     *  占位 <br>、空行块（<div><br></div>）与空白/零宽字符不算 */
     const hasContent = (node: Node): boolean => {
         if (node.nodeType === Node.TEXT_NODE) {
-            return (node.textContent ?? "").length > 0;
+            return (
+                (node.textContent ?? "").replace(
+                    /[\\s\\u200B\\u200C\\u200D\\uFEFF]/g,
+                    "",
+                ).length > 0
+            );
         }
         if (node.nodeType !== Node.ELEMENT_NODE) return false;
         const el = node as HTMLElement;

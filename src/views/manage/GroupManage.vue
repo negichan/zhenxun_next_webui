@@ -138,14 +138,15 @@ onMounted(() => {
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 bg-white rounded-3xl shadow-sm p-4 border border-slate-200">
             <div class="flex items-center space-x-3">
                 <Group class="h-6 w-6 text-zx-primary flex-shrink-0" />
-                <h2 class="text-lg font-semibold text-gray-800">群组管理</h2>
-                <span class="text-sm text-gray-500">(共 {{ filteredGroups.length }} 个)</span>
+                <h2 class="text-lg font-semibold text-zx-text-strong">群组管理</h2>
+                <span class="text-sm text-zx-text-muted">(共 {{ filteredGroups.length }} 个)</span>
             </div>
 
             <!-- 搜索框 -->
             <div class="w-full sm:w-72">
-                <ZxSearchInput
+                <ZXInput
                     v-model="searchQuery"
+                    type="search"
                     placeholder="搜索群组名称或 ID..."
                 />
             </div>
@@ -155,26 +156,26 @@ onMounted(() => {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-3 text-center">
                 <div class="text-lg sm:text-xl font-bold text-zx-primary">{{ stats.total }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">总群组数</div>
+                <div class="text-xs text-zx-text-muted mt-0.5">总群组数</div>
             </div>
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-3 text-center">
                 <div class="text-lg sm:text-xl font-bold text-green-600">{{ stats.active }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">已启用</div>
+                <div class="text-xs text-zx-text-muted mt-0.5">已启用</div>
             </div>
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-3 text-center">
-                <div class="text-lg sm:text-xl font-bold text-gray-600">{{ stats.inactive }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">已禁用</div>
+                <div class="text-lg sm:text-xl font-bold text-zx-text-muted">{{ stats.inactive }}</div>
+                <div class="text-xs text-zx-text-muted mt-0.5">已禁用</div>
             </div>
             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-3 text-center">
                 <div class="text-lg sm:text-xl font-bold text-zx-primary">{{ stats.totalMembers }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">成员总数</div>
+                <div class="text-xs text-zx-text-muted mt-0.5">成员总数</div>
             </div>
         </div>
 
         <!-- 群组列表 -->
         <div class="flex-1 overflow-y-auto">
             <div v-if="loading" class="flex items-center justify-center h-full">
-                <div class="text-center text-gray-400">
+                <div class="text-center text-zx-text-subtle">
                     <Group class="w-12 h-12 mx-auto mb-4 animate-pulse" />
                     <p>加载中...</p>
                 </div>
@@ -216,9 +217,9 @@ onMounted(() => {
                     <div class="modal-content relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden">
                     <!-- 头部 -->
                     <div class="flex items-center justify-between px-4 sm:px-6 py-4 bg-white border-b border-slate-200 flex-shrink-0">
-                        <h3 class="text-base sm:text-lg font-semibold text-gray-800 truncate">群组详情</h3>
+                        <h3 class="text-base sm:text-lg font-semibold text-zx-text-strong truncate">群组详情</h3>
                         <button @click="detailDialogOpen = false" class="p-1 rounded-2xl hover:bg-white/50 transition-colors flex-shrink-0">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-zx-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
@@ -237,24 +238,3 @@ onMounted(() => {
         </Teleport>
     </div>
 </template>
-
-<style scoped>
-/* 自定义滚动条样式 */
-.overflow-y-auto::-webkit-scrollbar {
-    width: 8px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-    background: var(--zx-color-border-soft);
-    border-radius: 4px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-    background: var(--zx-slate-300);
-    border-radius: 4px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-color-text-subtle);
-}
-</style>

@@ -68,7 +68,8 @@ export function createTransitionHooks(preset: TransitionPreset) {
             return;
         }
         const overlay = overlayOf(el);
-        if (overlay) {
+        // 遮罩进场不闪：duration 为 0 时直接实底
+        if (overlay && (preset.overlayEnterDuration ?? 0.35) > 0) {
             gsap.fromTo(
                 overlay,
                 { opacity: 0 },
@@ -79,6 +80,9 @@ export function createTransitionHooks(preset: TransitionPreset) {
                 },
             );
         }
+        const content = contentOf(el);
+        // keyframes 模式下 fromTo 的 from 可能被忽略，先 set 起点再播关键帧
+        gsap.set(content, preset.enter.from);
         const to = Array.isArray(preset.enter.to)
             ? { keyframes: preset.enter.to, ease: "none" }
             : {
@@ -86,9 +90,9 @@ export function createTransitionHooks(preset: TransitionPreset) {
                   ease: preset.enter.ease ?? "power2.out",
                   duration: preset.enter.duration,
               };
-        const content = contentOf(el);
-        gsap.fromTo(content, preset.enter.from, {
+        gsap.to(content, {
             ...to,
+            overwrite: true,
             onComplete: () => {
                 // 清掉内联 transform/opacity，避免影响元素自身的响应式变换
                 gsap.set(content, { clearProps: "transform,opacity" });
@@ -103,7 +107,7 @@ export function createTransitionHooks(preset: TransitionPreset) {
             return;
         }
         const overlay = overlayOf(el);
-        if (overlay) {
+        if (overlay && (preset.overlayLeaveDuration ?? 0.25) > 0) {
             gsap.to(overlay, {
                 opacity: 0,
                 duration: preset.overlayLeaveDuration ?? 0.25,
@@ -122,7 +126,9 @@ export function createTransitionHooks(preset: TransitionPreset) {
     return { onEnter, onLeave };
 }
 
-/** 弹窗果冻进出场（原 custom.css 的 modal-jelly，关键帧 1:1 复刻） */
+/** 弹窗果冻进出场（原 custom.css 的 modal-jelly，关键帧 1:1 复刻）
+ *  遮罩：进场不闪（0），离场短促淡出（0.12s）
+ */
 export const modalJelly = createTransitionHooks({
     enter: {
         from: { opacity: 0, y: -28, scale: 0.72, rotation: -1.5 },
@@ -143,8 +149,8 @@ export const modalJelly = createTransitionHooks({
     leave: { to: { opacity: 0, y: 12, scale: 0.9 }, duration: 0.25 },
     overlaySelector: ".glass-overlay",
     contentSelector: ".modal-content",
-    overlayEnterDuration: 0.35,
-    overlayLeaveDuration: 0.25,
+    overlayEnterDuration: 0,
+    overlayLeaveDuration: 0.12,
 });
 
 /** 下拉菜单（原 User.vue 的 dropdown：顶部锚点缩放淡入） */

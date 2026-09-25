@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { modalJelly } from "@/composables/useGsapTransition";
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { X, Save, RotateCcw, Search, Settings, Plus, Minus, Shield, SlidersHorizontal, ChevronDown, GripVertical } from 'lucide-vue-next'
-import { gsap } from 'gsap'
+import { X, Save, RotateCcw, Search, Settings, Shield, SlidersHorizontal, ChevronDown, GripVertical } from 'lucide-vue-next'
 import { pluginApi } from '@/utils/api-next'
 import { ZXNotification } from '@/services/ui'
-import { ZXDropdown } from '@/components/zxcomponent/ZXDropdown'
+import { ZXSelect } from '@/components/zxcomponent/ZXSelect'
+import ZXInput from '@/components/zxcomponent/ZXInput.vue'
 import type { PluginDetailConfig, PluginDetail } from '@/types/plugin.types'
 import { OVERLAY_ID, useZxOverlay } from "@/composables/useOverlayStack";
 
@@ -62,23 +62,34 @@ const levelOptions = Array.from({ length: 10 }, (_, i) => ({
     value: String(i + 1)
 }))
 
-// 类型徽标：柔和着色胶囊，与插件卡的版本/内置徽标同语言
-const typeBadges: Record<string, { label: string; cls: string }> = {
-    int: { label: 'INTEGER', cls: 'bg-purple-500 text-white' },
-    float: { label: 'FLOAT', cls: 'bg-blue-500 text-white' },
-    bool: { label: 'BOOL', cls: 'bg-green-500 text-white' },
-    boolean: { label: 'BOOL', cls: 'bg-green-500 text-white' },
-    str: { label: 'STRING', cls: 'bg-gray-400 text-white' },
-    string: { label: 'STRING', cls: 'bg-gray-400 text-white' },
-    list: { label: 'LIST', cls: 'bg-orange-500 text-white' },
-    dict: { label: 'DICT', cls: 'bg-cyan-500 text-white' },
-    json: { label: 'JSON', cls: 'bg-cyan-500 text-white' }
+// 类型徽标：ZxTag 标准语义档（int/内置紫、float/info 蓝、bool/success 绿、
+// list/warning 琥珀、dict·json/cyan，兜底 neutral），与插件卡徽标同语言
+type TypeBadgeVariant =
+    | "neutral"
+    | "primary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "info"
+    | "purple"
+    | "cyan";
+
+const typeBadges: Record<string, { label: string; variant: TypeBadgeVariant }> = {
+    int: { label: 'INTEGER', variant: 'purple' },
+    float: { label: 'FLOAT', variant: 'info' },
+    bool: { label: 'BOOL', variant: 'success' },
+    boolean: { label: 'BOOL', variant: 'success' },
+    str: { label: 'STRING', variant: 'neutral' },
+    string: { label: 'STRING', variant: 'neutral' },
+    list: { label: 'LIST', variant: 'warning' },
+    dict: { label: 'DICT', variant: 'cyan' },
+    json: { label: 'JSON', variant: 'cyan' }
 }
 
-const typeBadge = (type?: string | null) =>
+const typeBadge = (type?: string | null): { label: string; variant: TypeBadgeVariant } =>
     typeBadges[(type || '').toLowerCase()] || {
         label: (type || 'ANY').toUpperCase(),
-        cls: 'bg-gray-400 text-white'
+        variant: 'neutral'
     }
 
 // 搜索框快捷键（Ctrl/Cmd + K）
@@ -297,17 +308,6 @@ const setConfigValue = (config: PluginDetailConfig, newValue: any) => {
     config.value = newValue
 }
 
-// 数字步进：int 步长 1，float 步长 0.1（结果保留两位小数防浮点误差）
-const stepConfigValue = (config: PluginDetailConfig, dir: 1 | -1) => {
-    const type = config.type?.toLowerCase() || ''
-    const step = type === 'float' ? 0.1 : 1
-    const current =
-        typeof config.value === 'number'
-            ? config.value
-            : parseFloat(String(config.value ?? '')) || 0
-    config.value = Math.round((current + dir * step) * 100) / 100
-}
-
 // 保存配置
 const handleSave = async () => {
     if (!pluginDetail.value) return
@@ -437,17 +437,17 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                     <!-- 头部：图标 + 标题 + 模块徽标 -->
                     <div class="flex items-center gap-3.5 px-6 pt-5 pb-4">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
-                            <p class="truncate text-2xl font-bold text-slate-800">
+                            <p class="truncate text-2xl font-bold text-zx-text-strong">
                                 {{ pluginName }}
                             </p>
                             <span
-                                class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-400"
+                                class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs text-zx-text-subtle"
                             >
                                 {{ module }}
                             </span>
                         </div>
                         <button
-                            class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                            class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text-muted"
                             type="button"
                             @click="handleClose"
                         >
@@ -457,28 +457,25 @@ const getPlaceholder = (config: PluginDetailConfig) => {
 
                     <!-- 搜索 -->
                     <div v-if="!loading && editableConfigs.length > 0" class="px-6 pb-4">
-                        <div
-                            class="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 transition-all focus-within:border-slate-400 focus-within:shadow-[inset_0_0_0_1px_var(--color-slate-400)] focus-within:bg-white"
+                        <ZXInput
+                            ref="searchInputRef"
+                            v-model="searchKeyword"
+                            type="search"
+                            placeholder="搜索配置项"
                         >
-                            <Search class="h-4 w-4 shrink-0 text-slate-400" />
-                            <input
-                                ref="searchInputRef"
-                                v-model="searchKeyword"
-                                type="text"
-                                placeholder="搜索配置项"
-                                class="min-w-0 flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                            >
-                            <span
-                                class="flex shrink-0 items-center gap-0.5 text-[10px] text-slate-400"
-                            >
+                            <template #suffix>
                                 <span
-                                    class="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono leading-none"
-                                >{{ isMac ? '⌘' : 'Ctrl' }}</span>
-                                <span
-                                    class="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono leading-none"
-                                >K</span>
-                            </span>
-                        </div>
+                                    class="flex shrink-0 items-center gap-0.5 text-[10px] text-zx-text-subtle"
+                                >
+                                    <span
+                                        class="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono leading-none"
+                                    >{{ isMac ? '⌘' : 'Ctrl' }}</span>
+                                    <span
+                                        class="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono leading-none"
+                                    >K</span>
+                                </span>
+                            </template>
+                        </ZXInput>
                     </div>
 
                     <!-- 主体：权限设置 / 参数配置 两个分区 -->
@@ -498,7 +495,7 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                 <div class="flex items-center gap-2.5 pb-4">
 
                                     <div>
-                                        <p class="text-sm font-bold text-slate-800">权限设置</p>
+                                        <p class="text-sm font-bold text-zx-text-strong">权限设置</p>
                                     </div>
                                 </div>
 
@@ -508,28 +505,28 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                         class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
                                     >
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-sm font-bold text-slate-700">群权限</p>
+                                            <p class="text-sm font-bold text-zx-text">群权限</p>
                                             <p
-                                                class="truncate text-xs text-slate-400"
+                                                class="truncate text-xs text-zx-text-subtle"
                                                 title="触发该功能所需权限等级"
                                             >
                                                 触发该功能所需权限等级
                                             </p>
                                         </div>
-                                        <ZXDropdown
+                                        <ZXSelect
                                             :model-value="String(editableLevel)"
                                             :options="levelOptions"
-                                            trigger-class="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-sm text-slate-700 transition-colors hover:text-zx-primary"
+                                            trigger-class="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-sm text-zx-text transition-colors hover:text-zx-primary"
                                             @update:model-value="editableLevel = Number($event)"
                                         >
                                             <template #trigger="{ label, open }">
                                                 <span class="font-semibold">{{ label }}</span>
                                                 <ChevronDown
-                                                    class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform"
+                                                    class="h-3.5 w-3.5 shrink-0 text-zx-text-subtle transition-transform"
                                                     :class="open ? 'rotate-180' : ''"
                                                 />
                                             </template>
-                                        </ZXDropdown>
+                                        </ZXSelect>
                                     </div>
 
                                     <!-- 限制超级用户 -->
@@ -537,23 +534,15 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                         class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
                                     >
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-sm font-bold text-slate-700">限制超级用户</p>
-                                            <p class="truncate text-xs text-slate-400">
+                                            <p class="text-sm font-bold text-zx-text">限制超级用户</p>
+                                            <p class="truncate text-xs text-zx-text-subtle">
                                                 {{ editableLimitSuperuser ? '超级用户也受等级限制' : '超级用户不受等级限制' }}
                                             </p>
                                         </div>
-                                        <label
-                                            class="relative inline-flex shrink-0 cursor-pointer items-center"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                v-model="editableLimitSuperuser"
-                                                class="sr-only peer"
-                                            >
-                                            <div
-                                                class="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-zx-primary peer-checked:after:translate-x-full"
-                                            ></div>
-                                        </label>
+                                        <ZxSwitch
+                                            v-model="editableLimitSuperuser"
+                                            size="md"
+                                        />
                                     </div>
                                 </div>
                             </section>
@@ -561,7 +550,7 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                             <!-- 无配置项提示 -->
                             <p
                                 v-if="editableConfigs.length === 0"
-                                class="text-center text-xs text-slate-300"
+                                class="text-center text-xs text-zx-text-subtle"
                             >
                                 该插件没有额外配置项
                             </p>
@@ -574,7 +563,7 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                 <div class="flex items-center gap-2.5 pb-4 px-4 sm:px-5">
 
                                     <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-bold text-slate-800">参数配置</p>
+                                        <p class="text-sm font-bold text-zx-text-strong">参数配置</p>
 
                                     </div>
                                 </div>
@@ -585,7 +574,7 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                 >
                                     <!-- 列头（仅 sm+ 显示） -->
                                     <div
-                                        class="hidden grid-cols-[1rem_10rem_1fr_4.5rem_14rem] items-center gap-3 border-b border-slate-100 px-4 py-2 text-xs text-slate-400 sm:grid"
+                                        class="hidden grid-cols-[1rem_10rem_1fr_4.5rem_14rem] items-center gap-3 border-b border-slate-100 px-4 py-2 text-xs text-zx-text-subtle sm:grid"
                                     >
                                         <span></span>
                                         <span>参数名</span>
@@ -608,28 +597,28 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                             <!-- 拖拽柄 -->
                                             <div class="hidden shrink-0 sm:flex sm:justify-center">
                                                 <GripVertical
-                                                    class="h-3.5 w-3.5 cursor-grab text-slate-300 transition-colors group-hover:text-slate-400"
+                                                    class="h-3.5 w-3.5 cursor-grab text-zx-text-subtle transition-colors group-hover:text-zx-text-subtle"
                                                 />
                                             </div>
                                             <!-- 参数名 -->
                                             <div class="flex min-w-0 items-center gap-1.5">
                                                 <span
-                                                    class="truncate text-xs font-semibold text-slate-700"
+                                                    class="truncate text-xs font-semibold text-zx-text"
                                                     :title="config.key"
                                                 >
                                                     {{ config.key }}
                                                 </span>
-                                                <span
-                                                    class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none sm:hidden"
-                                                    :class="typeBadge(config.type).cls"
+                                                <ZxTag
+                                                    class="sm:hidden"
+                                                    :variant="typeBadge(config.type).variant"
                                                 >
                                                     {{ typeBadge(config.type).label }}
-                                                </span>
+                                                </ZxTag>
                                             </div>
 
                                             <!-- 说明 -->
                                             <p
-                                                class="truncate text-[11px] text-slate-400"
+                                                class="truncate text-[11px] text-zx-text-subtle"
                                                 :title="config.help ?? undefined"
                                             >
                                                 {{ config.help || '—' }}
@@ -637,12 +626,9 @@ const getPlaceholder = (config: PluginDetailConfig) => {
 
                                             <!-- 类型 -->
                                             <div class="hidden sm:block">
-                                                <span
-                                                    class="inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase leading-none"
-                                                    :class="typeBadge(config.type).cls"
-                                                >
+                                                <ZxTag :variant="typeBadge(config.type).variant">
                                                     {{ typeBadge(config.type).label }}
-                                                </span>
+                                                </ZxTag>
                                             </div>
 
                                             <!-- 值：输入控件 -->
@@ -654,96 +640,66 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                                                 >
                                                     <span
                                                         class="text-[13px] transition-colors"
-                                                        :class="getConfigValue(config) ? 'text-slate-700' : 'text-slate-400'"
+                                                        :class="getConfigValue(config) ? 'text-zx-text' : 'text-zx-text-subtle'"
                                                     >
                                                         {{ getConfigValue(config) ? '已启用' : '已禁用' }}
                                                     </span>
-                                                    <label
-                                                        class="relative inline-flex cursor-pointer items-center"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            :checked="getConfigValue(config)"
-                                                            @change="setConfigValue(config, ($event.target as HTMLInputElement).checked)"
-                                                            class="sr-only peer"
-                                                        >
-                                                        <div
-                                                            class="h-6 w-11 rounded-full bg-slate-200 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-zx-primary peer-checked:after:translate-x-full"
-                                                        ></div>
-                                                    </label>
+                                                    <ZxSwitch
+                                                        :model-value="!!getConfigValue(config)"
+                                                        size="md"
+                                                        @change="(v: boolean) => setConfigValue(config, v)"
+                                                    />
                                                 </div>
 
                                                 <!-- list：逗号分隔 -->
-                                                <input
+                                                <ZXInput
                                                     v-else-if="config.type?.toLowerCase() === 'list'"
-                                                    type="text"
-                                                    :value="configValueText(config)"
-                                                    @input="setConfigValue(config, ($event.target as HTMLInputElement).value)"
+                                                    :model-value="String(configValueText(config) ?? '')"
                                                     :placeholder="getPlaceholder(config)"
-                                                    class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] text-slate-700 placeholder:text-slate-400 transition-colors focus:border-zx-primary focus:bg-white focus:outline-none"
-                                                >
+                                                    size="sm"
+                                                    @update:model-value="(v: string | number) => setConfigValue(config, v)"
+                                                />
 
                                                 <!-- dict/json -->
-                                                <input
+                                                <ZXInput
                                                     v-else-if="config.type?.toLowerCase() === 'dict' || config.type?.toLowerCase() === 'json'"
-                                                    type="text"
-                                                    :value="configValueText(config)"
-                                                    @input="setConfigValue(config, ($event.target as HTMLInputElement).value)"
+                                                    :model-value="String(configValueText(config) ?? '')"
                                                     :placeholder="getPlaceholder(config)"
-                                                    class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 font-mono text-[13px] text-slate-700 placeholder:text-slate-400 transition-colors focus:border-zx-primary focus:bg-white focus:outline-none"
-                                                >
+                                                    size="sm"
+                                                    input-class="font-mono"
+                                                    @update:model-value="(v: string | number) => setConfigValue(config, v)"
+                                                />
 
-                                                <!-- int / float：步进器（加减在输入框内右侧） -->
-                                                <div
+                                                <!-- int / float：统一步进器 -->
+                                                <ZxInputNumber
                                                     v-else-if="config.type?.toLowerCase() === 'int' || config.type?.toLowerCase() === 'float'"
-                                                    class="flex w-full items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-1 pl-4 pr-1.5 transition-colors focus-within:border-zx-primary focus-within:bg-white"
-                                                >
-                                                    <input
-                                                        type="number"
-                                                        :value="getConfigValue(config)"
-                                                        @input="setConfigValue(config, ($event.target as HTMLInputElement).value)"
-                                                        :placeholder="getPlaceholder(config)"
-                                                        class="num-input min-w-0 flex-1 bg-transparent text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                                                    >
-                                                    <button
-                                                        class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white hover:text-zx-primary"
-                                                        title="减少"
-                                                        type="button"
-                                                        @click="stepConfigValue(config, -1)"
-                                                    >
-                                                        <Minus class="h-3.5 w-3.5" />
-                                                    </button>
-                                                    <button
-                                                        class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white hover:text-zx-primary"
-                                                        title="增加"
-                                                        type="button"
-                                                        @click="stepConfigValue(config, 1)"
-                                                    >
-                                                        <Plus class="h-3.5 w-3.5" />
-                                                    </button>
-                                                </div>
+                                                    :model-value="Number(getConfigValue(config)) || 0"
+                                                    :step="config.type?.toLowerCase() === 'float' ? 0.1 : 1"
+                                                    :precision="config.type?.toLowerCase() === 'float' ? 2 : 0"
+                                                    :placeholder="getPlaceholder(config)"
+                                                    size="sm"
+                                                    @update:model-value="(v: number) => setConfigValue(config, v)"
+                                                />
 
                                                 <!-- 字符串 -->
-                                                <input
+                                                <ZXInput
                                                     v-else
-                                                    type="text"
-                                                    :value="getConfigValue(config)"
-                                                    @input="setConfigValue(config, ($event.target as HTMLInputElement).value)"
+                                                    :model-value="String(getConfigValue(config) ?? '')"
                                                     :placeholder="getPlaceholder(config)"
-                                                    class="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] text-slate-700 placeholder:text-slate-400 transition-colors focus:border-zx-primary focus:bg-white focus:outline-none"
-                                                >
+                                                    size="sm"
+                                                    @update:model-value="(v: string | number) => setConfigValue(config, v)"
+                                                />
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- 无搜索结果 -->
-                                    <div
+                                    <ZxEmptyState
                                         v-else
-                                        class="flex flex-col items-center justify-center py-10 text-slate-300"
-                                    >
-                                        <Search class="mb-2 h-8 w-8 opacity-40" />
-                                        <p class="text-sm">没有找到匹配的配置项</p>
-                                    </div>
+                                        size="sm"
+                                        text="没有找到匹配的配置项"
+                                        sub-text="请尝试调整搜索关键词"
+                                    />
                                 </div>
                             </section>
                         </template>
@@ -755,7 +711,7 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                     >
                         <div class="flex min-w-0 items-center gap-2">
                             <button
-                                class="btn-touch flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                                class="btn-touch flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-4 py-2 text-sm text-zx-text-muted transition-colors hover:bg-slate-100 disabled:opacity-50"
                                 :disabled="loading"
                                 type="button"
                                 @click="handleReset"
@@ -766,7 +722,7 @@ const getPlaceholder = (config: PluginDetailConfig) => {
                         </div>
                         <div class="flex shrink-0 items-center gap-2">
                             <button
-                                class="btn-touch cursor-pointer rounded-full px-4 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-50"
+                                class="btn-touch cursor-pointer rounded-full px-4 py-2 text-sm text-zx-text-muted transition-colors hover:bg-slate-100 disabled:opacity-50"
                                 :disabled="loading"
                                 type="button"
                                 @click="handleClose"
@@ -795,15 +751,5 @@ const getPlaceholder = (config: PluginDetailConfig) => {
 </template>
 
 <style scoped>
-/* 隐藏 number 输入的浏览器原生步进箭头 */
-.num-input::-webkit-outer-spin-button,
-.num-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-.num-input {
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
 /* 果冻动画样式已在 custom.css 中统一定义 */
 </style>

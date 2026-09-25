@@ -5,8 +5,8 @@ import { FileText, Maximize2, Minimize2 } from "lucide-vue-next";
 const LEVEL_CHIPS = [
     {
         key: "INFO",
-        textClass: "text-sky-600",
-        dotClass: "bg-sky-500",
+        textClass: "text-zx-info",
+        dotClass: "bg-zx-info",
     },
     {
         key: "WARNING",
@@ -20,7 +20,7 @@ const LEVEL_CHIPS = [
     },
     {
         key: "DEBUG",
-        textClass: "text-slate-500",
+        textClass: "text-zx-text-muted",
         dotClass: "bg-slate-400",
     },
 ] as const;
@@ -44,7 +44,7 @@ const emit = defineEmits<{
     >
         <div class="flex min-w-0 items-center space-x-2">
             <FileText class="h-5 w-5 shrink-0 text-zx-primary" />
-            <span class="shrink-0 text-sm font-semibold text-gray-700">日志</span>
+            <span class="shrink-0 text-sm font-semibold text-zx-text">日志</span>
         </div>
 
         <div class="flex min-w-0 flex-wrap items-center gap-2">
@@ -53,8 +53,8 @@ const emit = defineEmits<{
                 <button
                     :class="
                         activeLevels.length === LEVEL_CHIPS.length
-                            ? 'text-slate-700'
-                            : 'text-slate-400 hover:text-slate-600'
+                            ? 'text-zx-text'
+                            : 'text-zx-text-subtle hover:text-zx-text-muted'
                     "
                     class="btn-touch flex h-6 cursor-pointer items-center gap-1 rounded-full px-2 text-[10px] font-semibold transition-colors sm:text-[11px]"
                     type="button"
@@ -76,7 +76,7 @@ const emit = defineEmits<{
                     :class="
                         activeLevels.includes(chip.key)
                             ? chip.textClass
-                            : 'text-slate-400 hover:text-slate-600'
+                            : 'text-zx-text-subtle hover:text-zx-text-muted'
                     "
                     class="btn-touch flex h-6 cursor-pointer items-center gap-1 rounded-full px-2 text-[10px] font-semibold transition-colors sm:text-[11px]"
                     type="button"
@@ -97,7 +97,7 @@ const emit = defineEmits<{
             <button
                 :aria-label="expanded ? '退出全屏' : '全屏查看日志'"
                 :title="expanded ? '退出全屏' : '全屏查看日志'"
-                class="btn-touch flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                class="btn-touch flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text"
                 type="button"
                 @click="emit('toggle')"
             >

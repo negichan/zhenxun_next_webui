@@ -16,7 +16,7 @@ const emit = defineEmits<{
 <template>
     <div class="flex flex-shrink-0 flex-col gap-2 border-b border-gray-100 p-3 sm:p-4">
         <div class="flex items-center justify-between gap-2">
-            <span class="text-xs text-gray-400">Ctrl / ⌘ + Enter 执行</span>
+            <span class="text-xs text-zx-text-subtle">Ctrl / ⌘ + Enter 执行</span>
             <ZxButton variant="ghost" size="sm" @click="emit('openLog')">
                 <Clock class="h-4 w-4" />
                 <span>日志</span>
@@ -27,7 +27,7 @@ const emit = defineEmits<{
                 v-model="sql"
                 placeholder="输入 SQL 语句，例如 SELECT * FROM users LIMIT 20"
                 rows="3"
-                class="min-h-20 w-full flex-1 resize-y rounded-2xl border border-gray-200 bg-slate-50/60 px-3 py-2 font-mono text-sm leading-6 text-gray-700 outline-none transition-colors focus:border-zx-primary focus:bg-white placeholder:text-gray-400"
+                class="min-h-20 w-full flex-1 resize-y rounded-2xl border border-gray-200 bg-slate-50/60 px-3 py-2 font-mono text-sm leading-6 text-zx-text outline-none transition-colors focus:border-zx-primary focus:bg-white placeholder:text-zx-text-subtle"
                 @keydown.meta.enter.prevent="emit('execute')"
                 @keydown.ctrl.enter.prevent="emit('execute')"
             ></textarea>

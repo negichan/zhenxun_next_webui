@@ -27,20 +27,21 @@ const filtered = computed(() => {
         <div
             class="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3"
         >
-            <div class="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <div class="flex items-center gap-2 text-sm font-semibold text-zx-text">
                 <Table class="h-4 w-4 text-zx-primary" />
                 <span>数据表</span>
             </div>
             <span
-                class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500"
+                class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-zx-text-muted"
             >
                 {{ tables.length }}
             </span>
         </div>
 
         <div v-if="tables.length > 6" class="border-b border-gray-100 p-2">
-            <ZxSearchInput
+            <ZXInput
                 v-model="keyword"
+                type="search"
                 placeholder="搜索表名..."
                 size="sm"
             />
@@ -58,7 +59,7 @@ const filtered = computed(() => {
                     :class="
                         selected === table
                             ? 'bg-zx-primary-tint font-medium text-zx-primary'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                            : 'text-zx-text-muted hover:bg-slate-50 hover:text-zx-text-strong'
                     "
                     class="group relative flex max-w-56 flex-shrink-0 cursor-pointer items-center gap-2 rounded-xl py-2 pr-3 pl-3.5 text-left text-sm transition-colors lg:max-w-none lg:flex-shrink"
                 >
@@ -72,7 +73,7 @@ const filtered = computed(() => {
                         :class="
                             selected === table
                                 ? 'text-zx-primary'
-                                : 'text-slate-400 group-hover:text-slate-500'
+                                : 'text-zx-text-subtle group-hover:text-zx-text-muted'
                         "
                     />
                     <span class="truncate">{{ table }}</span>

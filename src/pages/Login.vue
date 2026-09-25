@@ -23,7 +23,7 @@ import { eventBus } from "@/events/eventBus.ts";
 /*
 图片导入区
  */
-import logo_img from "@/assets/img/title.png";
+import logo_img from "@/assets/img/title.webp";
 import { poster_img } from "@/utils/poster";
 
 /*
@@ -472,7 +472,7 @@ function handleHoverShowLocation(): gsap.core.Timeline {
             >
                 <div
                     ref="logo"
-                    class="title mb-4 flex justify-center text-3xl font-bold text-slate-800"
+                    class="title mb-4 flex justify-center text-3xl font-bold text-zx-text-strong"
                 >
                     <img
                         :src="logo_img"
@@ -482,7 +482,7 @@ function handleHoverShowLocation(): gsap.core.Timeline {
                 </div>
                 <div
                     ref="login_card"
-                    class="login mx-30 flex flex-col space-y-10 rounded-3xl bg-white px-8 pt-12 pb-6 text-sm text-gray-700 shadow-sm max-sm:m-0 max-sm:px-10"
+                    class="login mx-30 flex flex-col space-y-10 rounded-3xl bg-white px-8 pt-12 pb-6 text-sm text-zx-text shadow-sm max-sm:m-0 max-sm:px-10"
                 >
                     <div class="user space-y-2">
                         <div class="title font-bold">用户名</div>
@@ -519,7 +519,7 @@ function handleHoverShowLocation(): gsap.core.Timeline {
                     <div class="forget mt-auto flex items-center justify-between">
                         <button
                             ref="showLocationButton"
-                            class="flex cursor-pointer items-center gap-1 text-sm text-blue-500 transition-colors hover:text-blue-400 focus:outline-none"
+                            class="flex cursor-pointer items-center gap-1 text-sm text-blue-600 transition-colors hover:text-blue-500 focus:outline-none"
                             type="button"
                             @click="showLocation"
                             @mouseenter="handleHoverShowLocation"
@@ -539,7 +539,7 @@ function handleHoverShowLocation(): gsap.core.Timeline {
                             地址设置
                         </button>
                         <span
-                            class="cursor-pointer text-blue-500 hover:text-blue-400"
+                            class="cursor-pointer text-blue-600 hover:text-blue-500"
                             @click="showForgetPassword"
                             >忘记密码？</span
                         >

@@ -14,22 +14,22 @@ import { FlaskConical, Sparkles } from "lucide-vue-next";
                 <FlaskConical class="h-7 w-7 text-zx-primary" />
             </div>
 
-            <div class="text-lg font-semibold text-slate-800">
+            <div class="text-lg font-semibold text-zx-text-strong">
                 二级菜单测试页
             </div>
 
-            <p class="max-w-md text-center text-sm leading-6 text-slate-500">
+            <p class="max-w-md text-center text-sm leading-6 text-zx-text-muted">
                 这个页面由侧边栏「扩展」下的二级菜单「测试按钮」打开，
                 用于验证二级菜单的展开、收起与路由高亮。以后插件可以通过
                 <code
-                    class="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600"
+                    class="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs text-zx-text-muted"
                     >registerMenuItem()</code
                 >
                 把自己的页面注册到这里。
             </p>
 
             <div
-                class="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-500"
+                class="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-zx-text-muted"
             >
                 <Sparkles class="h-3.5 w-3.5" />
                 插件二级菜单占位

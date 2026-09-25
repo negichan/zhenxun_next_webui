@@ -68,17 +68,13 @@ useZxOverlay({
                     </button>
                 </div>
 
-                <input
-                    :value="itemName"
-                    class="mb-4 w-full rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:outline-none"
+                <ZXInput
+                    :model-value="itemName"
+                    class="mb-4"
+                    rounded="2xl"
+                    size="lg"
                     placeholder="请输入名称"
-                    type="text"
-                    @input="
-                        emit(
-                            'update:itemName',
-                            ($event.target as HTMLInputElement).value,
-                        )
-                    "
+                    @update:model-value="(v: string | number) => emit('update:itemName', String(v))"
                     @keyup.enter="emit('confirm')"
                 />
 

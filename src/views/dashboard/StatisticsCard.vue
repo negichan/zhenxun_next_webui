@@ -27,12 +27,12 @@ defineProps<{
         class="flex h-full min-w-0 items-center justify-around gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-[box-shadow,border-color] hover:border-slate-300 hover:shadow-md"
     >
         <div class="flex min-w-0 flex-1 flex-col justify-between gap-3">
-            <div class="truncate text-base font-medium text-slate-500">
+            <div class="truncate text-base font-medium text-zx-text-muted">
                 {{ title }}
             </div>
 
             <div
-                class="flex min-w-0 items-end gap-2 text-3xl leading-none font-bold text-gray-800"
+                class="flex min-w-0 items-end gap-2 text-3xl leading-none font-bold text-zx-text-strong"
             >
                 <span
                     v-if="loading"
@@ -40,14 +40,14 @@ defineProps<{
                 ></span>
                 <template v-else>
                     <span class="min-w-0 truncate" v-odometer="value"></span>
-                    <span v-if="showPercent" class="text-lg text-slate-500"
+                    <span v-if="showPercent" class="text-lg text-zx-text-muted"
                         >%</span
                     >
                     <component
                         v-if="trendIcon"
                         :is="trendIcon"
                         :class="[
-                            trendColorClass || 'text-gray-400',
+                            trendColorClass || 'text-zx-text-subtle',
                             'mb-0.5 h-4 w-4 shrink-0',
                         ]"
                     />
@@ -55,7 +55,7 @@ defineProps<{
                         v-if="
                             trendIcon && change !== null && change !== undefined
                         "
-                        :class="trendColorClass || 'text-gray-400'"
+                        :class="trendColorClass || 'text-zx-text-subtle'"
                         class="mb-0.5 shrink-0 text-xs font-bold"
                     >
                         {{ change > 0 ? "+" : "" }}{{ change.toFixed(1) }}%
@@ -75,7 +75,7 @@ defineProps<{
                     :is="icon"
                     :fill="iconFilled ? 'currentColor' : 'none'"
                     :stroke-width="iconStrokeWidth"
-                    :class="[iconColorClass || 'text-slate-600', 'h-9 w-9']"
+                    :class="[iconColorClass || 'text-zx-text-muted', 'h-9 w-9']"
                 />
             </div>
         </div>

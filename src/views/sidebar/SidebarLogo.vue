@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useGlobalStore } from "@/store/global.js";
-import logo from "@/assets/img/title.png";
+import logo from "@/assets/img/title.webp";
 
 const globalStore = useGlobalStore();
 </script>

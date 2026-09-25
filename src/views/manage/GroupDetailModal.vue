@@ -17,6 +17,8 @@ import { manageApi } from '@/utils/api-next'
 import { useBotStore } from '@/store/bot'
 import type { GroupDetailNew, GroupPlugin, GroupMember, MemberDetail, AnyMember } from '@/types/manage.types'
 import MemberCard from '@/views/manage/components/MemberCard/MemberCard.vue'
+import ZXInput from '@/components/zxcomponent/ZXInput.vue'
+import ZxEmptyState from '@/components/zxcomponent/ZxEmptyState.vue'
 
 const props = defineProps<{
     groupId: string
@@ -255,30 +257,30 @@ onMounted(() => {
         <div v-if="groupDetail" class="space-y-4">
             <!-- 基本信息卡片 -->
             <div>
-                <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <h3 class="text-base font-bold text-zx-text-strong mb-3 flex items-center gap-2">
                     <Info class="w-5 h-5 text-zx-primary" />
                     基本信息
                 </h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div class="bg-slate-50 rounded-2xl p-3">
-                        <p class="text-xs text-gray-500 mb-1">群组名称</p>
-                        <p class="font-semibold text-gray-800 truncate text-sm" :title="groupDetail.group_name">
+                        <p class="text-xs text-zx-text-muted mb-1">群组名称</p>
+                        <p class="font-semibold text-zx-text-strong truncate text-sm" :title="groupDetail.group_name">
                             {{ groupDetail.group_name }}
                         </p>
                     </div>
                     <div class="bg-slate-50 rounded-2xl p-3">
-                        <p class="text-xs text-gray-500 mb-1">群组 ID</p>
-                        <p class="font-semibold text-gray-800 font-mono text-xs">{{ groupDetail.group_id }}</p>
+                        <p class="text-xs text-zx-text-muted mb-1">群组 ID</p>
+                        <p class="font-semibold text-zx-text-strong font-mono text-xs">{{ groupDetail.group_id }}</p>
                     </div>
                     <div class="bg-slate-50 rounded-2xl p-3">
-                        <p class="text-xs text-gray-500 mb-1">成员数量</p>
-                        <p class="font-semibold text-gray-800 text-sm">
+                        <p class="text-xs text-zx-text-muted mb-1">成员数量</p>
+                        <p class="font-semibold text-zx-text-strong text-sm">
                             {{ groupDetail.member_count }} / {{ groupDetail.max_member_count }}
                         </p>
                     </div>
                     <div class="bg-slate-50 rounded-2xl p-3">
-                        <p class="text-xs text-gray-500 mb-1">群权限等级</p>
-                        <p class="font-semibold text-gray-800 flex items-center justify-center gap-1 text-sm">
+                        <p class="text-xs text-zx-text-muted mb-1">群权限等级</p>
+                        <p class="font-semibold text-zx-text-strong flex items-center justify-center gap-1 text-sm">
                             <Shield class="w-4 h-4 text-zx-primary" />
                             {{ groupDetail.level }}
                         </p>
@@ -288,7 +290,7 @@ onMounted(() => {
 
             <!-- 群开关设置 -->
             <div>
-                <h3 class="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <h3 class="text-base font-bold text-zx-text-strong mb-3 flex items-center gap-2">
                     <ToggleRight class="w-5 h-5 text-zx-primary" />
                     群开关设置
                 </h3>
@@ -300,10 +302,10 @@ onMounted(() => {
                             : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200'"
                     >
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-gray-600">群状态</span>
+                            <span class="text-xs font-medium text-zx-text-muted">群状态</span>
                             <ZxSwitch v-model="groupDetail.status" @change="updateGroupStatus" />
                         </div>
-                        <p class="text-xs" :class="groupDetail.status ? 'text-green-600' : 'text-gray-400'">
+                        <p class="text-xs" :class="groupDetail.status ? 'text-green-600' : 'text-zx-text-subtle'">
                             {{ groupDetail.status ? '已启用' : '已禁用' }}
                         </p>
                     </div>
@@ -315,10 +317,10 @@ onMounted(() => {
                             : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200'"
                     >
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-gray-600">超级用户指定</span>
+                            <span class="text-xs font-medium text-zx-text-muted">超级用户指定</span>
                             <ZxSwitch v-model="groupDetail.is_super" @change="updateGroupStatus" />
                         </div>
-                        <p class="text-xs" :class="groupDetail.is_super ? 'text-purple-600' : 'text-gray-400'">
+                        <p class="text-xs" :class="groupDetail.is_super ? 'text-purple-600' : 'text-zx-text-subtle'">
                             {{ groupDetail.is_super ? '已开启' : '已关闭' }}
                         </p>
                     </div>
@@ -330,10 +332,10 @@ onMounted(() => {
                             : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200'"
                     >
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-gray-600">被动任务</span>
+                            <span class="text-xs font-medium text-zx-text-muted">被动任务</span>
                             <ZxSwitch v-model="groupDetail.block_task" @change="updateGroupStatus" />
                         </div>
-                        <p class="text-xs" :class="groupDetail.block_task ? 'text-gray-400' : 'text-blue-600'">
+                        <p class="text-xs" :class="groupDetail.block_task ? 'text-zx-text-subtle' : 'text-blue-600'">
                             {{ groupDetail.block_task ? '已禁用' : '已启用' }}
                         </p>
                     </div>
@@ -345,10 +347,10 @@ onMounted(() => {
                             : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-200'"
                     >
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-medium text-gray-600">插件功能</span>
+                            <span class="text-xs font-medium text-zx-text-muted">插件功能</span>
                             <ZxSwitch v-model="groupDetail.block_plugin" @change="updateGroupStatus" />
                         </div>
-                        <p class="text-xs" :class="groupDetail.block_plugin ? 'text-gray-400' : 'text-orange-600'">
+                        <p class="text-xs" :class="groupDetail.block_plugin ? 'text-zx-text-subtle' : 'text-orange-600'">
                             {{ groupDetail.block_plugin ? '已禁用' : '已启用' }}
                         </p>
                     </div>
@@ -358,14 +360,14 @@ onMounted(() => {
             <!-- 功能开关列表 -->
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <h3 class="text-base font-bold text-zx-text-strong flex items-center gap-2">
                         <Puzzle class="w-5 h-5 text-zx-primary" />
                         功能开关
                     </h3>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-500">插件：<span class="font-medium text-slate-600">{{ pluginCount }}</span></span>
-                        <span class="text-xs text-gray-500">|</span>
-                        <span class="text-xs text-gray-500">被动：<span class="font-medium text-slate-600">{{ taskCount }}</span></span>
+                        <span class="text-xs text-zx-text-muted">插件：<span class="font-medium text-zx-text-muted">{{ pluginCount }}</span></span>
+                        <span class="text-xs text-zx-text-muted">|</span>
+                        <span class="text-xs text-zx-text-muted">被动：<span class="font-medium text-zx-text-muted">{{ taskCount }}</span></span>
                     </div>
                 </div>
                 <div class="plugin-list relative min-h-[120px] max-h-80 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-2">
@@ -394,7 +396,7 @@ onMounted(() => {
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-medium text-gray-800 text-sm truncate">
+                                        <span class="font-medium text-zx-text-strong text-sm truncate">
                                             {{ plugin.plugin_name }}
                                         </span>
                                         <span
@@ -404,7 +406,7 @@ onMounted(() => {
                                             被动
                                         </span>
                                     </div>
-                                    <span class="text-xs text-gray-400 font-mono">{{ plugin.module }}</span>
+                                    <span class="text-xs text-zx-text-subtle font-mono">{{ plugin.module }}</span>
                                 </div>
                             </div>
                             <ZxSwitch
@@ -414,30 +416,31 @@ onMounted(() => {
                             />
                         </div>
                     </template>
-                    <div v-else class="flex items-center justify-center h-[120px] text-gray-400 text-sm">
-                        暂无插件
-                    </div>
+                    <ZxEmptyState
+                        v-else
+                        size="sm"
+                        text="暂无插件"
+                    />
                 </div>
             </div>
 
             <!-- 群成员列表 -->
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <h3 class="text-base font-bold text-zx-text-strong flex items-center gap-2">
                         <Users class="w-5 h-5 text-zx-primary" />
                         群成员管理
                     </h3>
-                    <span class="text-xs text-gray-500">共 {{ filteredMembers.length }} 人</span>
+                    <span class="text-xs text-zx-text-muted">共 {{ filteredMembers.length }} 人</span>
                 </div>
 
                 <!-- 搜索框 -->
-                <div class="relative mb-3">
-                    <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
+                <div class="mb-3">
+                    <ZXInput
                         v-model="memberSearchQuery"
-                        type="text"
+                        type="search"
                         placeholder="搜索成员..."
-                        class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-zx-primary focus:border-transparent"
+                        rounded="2xl"
                     />
                 </div>
 
@@ -455,9 +458,11 @@ onMounted(() => {
                             />
                         </div>
                     </template>
-                    <div v-else class="flex items-center justify-center h-[120px] text-gray-400 text-sm">
-                        暂无成员
-                    </div>
+                    <ZxEmptyState
+                        v-else
+                        size="sm"
+                        text="暂无成员"
+                    />
                 </div>
             </div>
         </div>
@@ -473,9 +478,9 @@ onMounted(() => {
                     <div class="modal-content relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden">
                     <!-- 头部 -->
                     <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200">
-                        <h3 class="text-lg font-semibold text-gray-800">成员详情</h3>
+                        <h3 class="text-lg font-semibold text-zx-text-strong">成员详情</h3>
                         <button @click="memberDetailDialogOpen = false" class="p-1 rounded-2xl hover:bg-white/50 transition-colors">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-zx-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                             </svg>
                         </button>
@@ -485,7 +490,7 @@ onMounted(() => {
                     <div class="flex-1 overflow-y-auto p-6">
                         <div v-if="currentMember" class="member-detail">
                             <div class="member-detail-header bg-slate-50 rounded-2xl p-4 mb-4">
-                                <img :src="currentMemberDetail?.ava_url || currentMember.ava_url" class="member-avatar-large" />
+                                <ZxAvatar :src="currentMemberDetail?.ava_url || currentMember.ava_url" :name="currentMember.nickname" size="xl" class="member-avatar-large" />
                                 <div class="member-detail-info flex-1 min-w-0">
                                     <h4 class="member-detail-name truncate">{{ currentMember.nickname }}</h4>
                                     <p class="member-detail-remark truncate">{{ currentMember.remark || currentMember.nickname }}</p>
@@ -499,7 +504,7 @@ onMounted(() => {
                                     <div class="flex items-center justify-between mb-2">
                                         <div class="flex items-center gap-2">
                                             <Coins class="w-4 h-4 text-zx-primary" />
-                                            <span class="text-xs font-medium text-gray-600">金币数量</span>
+                                            <span class="text-xs font-medium text-zx-text-muted">金币数量</span>
                                         </div>
                                         <ZxInputNumber
                                             v-model="memberForm.gold"
@@ -515,7 +520,7 @@ onMounted(() => {
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <Heart class="w-4 h-4 text-zx-primary" />
-                                            <span class="text-xs font-medium text-gray-600">好感度/权限等级</span>
+                                            <span class="text-xs font-medium text-zx-text-muted">好感度/权限等级</span>
                                         </div>
                                         <ZxInputNumber
                                             v-model="memberForm.favorability"
@@ -544,42 +549,6 @@ onMounted(() => {
 .switch-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.plugin-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.plugin-list::-webkit-scrollbar-track {
-    background: var(--zx-color-border-soft);
-    border-radius: 3px;
-}
-
-.plugin-list::-webkit-scrollbar-thumb {
-    background: var(--zx-slate-300);
-    border-radius: 3px;
-}
-
-.plugin-list::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-color-text-subtle);
-}
-
-.member-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.member-list::-webkit-scrollbar-track {
-    background: var(--zx-color-border-soft);
-    border-radius: 3px;
-}
-
-.member-list::-webkit-scrollbar-thumb {
-    background: var(--zx-slate-300);
-    border-radius: 3px;
-}
-
-.member-list::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-color-text-subtle);
 }
 
 .member-detail {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import type { LogEntry } from "@/types/log.types";
 
 const props = withDefaults(
@@ -140,9 +141,9 @@ const levelClass = (level: LogEntry["level"]) => {
         case "INFO":
             return "text-sky-600";
         case "DEBUG":
-            return "text-slate-500";
+            return "text-zx-text-muted";
         default:
-            return "text-slate-500";
+            return "text-zx-text-muted";
     }
 };
 </script>
@@ -191,9 +192,9 @@ const levelClass = (level: LogEntry["level"]) => {
              按行高计算，与横向宽度无关，不受影响） -->
         <div
             v-else-if="logs.length === 0"
-            class="flex h-full items-center justify-center text-gray-400"
+            class="flex h-full items-center justify-center"
         >
-            <span class="text-sm">暂无日志</span>
+            <ZxEmptyState size="sm" text="暂无日志" />
         </div>
 
         <div
@@ -207,9 +208,9 @@ const levelClass = (level: LogEntry["level"]) => {
             <div
                 v-for="(log, i) in visibleLogs"
                 :key="log.seq ?? startIndex + i"
-                class="grid h-6 w-fit min-w-full grid-cols-[2.5rem_2.6rem_minmax(0,max-content)] items-center gap-1 rounded-lg px-1 text-slate-700 transition-colors hover:bg-slate-200/70 sm:grid-cols-[3rem_3rem_minmax(0,max-content)] sm:gap-1.5 sm:px-2"
+                class="grid h-6 w-fit min-w-full grid-cols-[2.5rem_2.6rem_minmax(0,max-content)] items-center gap-1 rounded-lg px-1 text-zx-text transition-colors hover:bg-slate-200/70 sm:grid-cols-[3rem_3rem_minmax(0,max-content)] sm:gap-1.5 sm:px-2"
             >
-                <span class="text-[10px] text-slate-400 tabular-nums">
+                <span class="text-[10px] text-zx-text-subtle tabular-nums">
                     {{ formatTimestamp(log.timestamp) }}
                 </span>
                 <span
@@ -229,7 +230,7 @@ const levelClass = (level: LogEntry["level"]) => {
                     </span>
                     <span
                         :title="log.message"
-                        class="w-fit whitespace-nowrap text-slate-700 select-text"
+                        class="w-fit whitespace-nowrap text-zx-text select-text"
                     >
                         {{ log.message }}
                     </span>

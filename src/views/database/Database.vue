@@ -252,12 +252,12 @@ onMounted(() => {
                 >
                     <div class="min-w-0">
                         <div class="flex min-w-0 items-center gap-2">
-                            <span class="truncate font-semibold text-gray-700">
+                            <span class="truncate font-semibold text-zx-text">
                                 {{ headerTitle }}
                             </span>
                             <span
                                 v-if="headerBadge"
-                                class="hidden rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 sm:inline-flex"
+                                class="hidden rounded-full bg-slate-100 px-2 py-0.5 text-xs text-zx-text-muted sm:inline-flex"
                             >
                                 {{ headerBadge }}
                             </span>
@@ -310,7 +310,7 @@ onMounted(() => {
                     <!-- 空态 -->
                     <div
                         v-else-if="!selectedTable"
-                        class="flex h-full items-center justify-center text-gray-400"
+                        class="flex h-full items-center justify-center text-zx-text-subtle"
                     >
                         <div class="text-center">
                             <Database class="mx-auto mb-4 h-16 w-16 opacity-50" />

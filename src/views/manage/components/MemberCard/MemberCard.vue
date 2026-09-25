@@ -22,30 +22,31 @@ const handleEdit = () => {
     >
         <div class="p-4 flex items-center gap-3">
             <!-- 头像 -->
-            <img
+            <ZxAvatar
                 :src="(member as any).ava_url"
-                :alt="(member as any).nickname"
-                class="w-10 h-10 rounded-full object-cover flex-shrink-0 border border-slate-200"
+                :name="(member as any).nickname || (member as any).remark"
+                size="md"
+                class="flex-shrink-0 border border-slate-200"
             />
 
             <!-- 信息 -->
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
-                    <h4 class="text-sm font-semibold text-gray-800 truncate" :title="(member as any).nickname || (member as any).remark">
+                    <h4 class="text-sm font-semibold text-zx-text-strong truncate" :title="(member as any).nickname || (member as any).remark">
                         {{ (member as any).nickname || (member as any).remark }}
                     </h4>
-                    <span
+                    <ZxTag
                         v-if="(member as GroupMember).role === 'owner'"
-                        class="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-500 text-white flex-shrink-0"
+                        variant="danger"
                     >
                         群主
-                    </span>
-                    <span
+                    </ZxTag>
+                    <ZxTag
                         v-else-if="(member as GroupMember).role === 'admin'"
-                        class="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-500 text-white flex-shrink-0"
+                        variant="info"
                     >
                         管理
-                    </span>
+                    </ZxTag>
                 </div>
                 <div class="flex items-center gap-3 mt-1">
                     <!-- 金币 -->
@@ -67,7 +68,7 @@ const handleEdit = () => {
                     <!-- 群名片 -->
                     <span
                         v-if="'remark' in member && (member as GroupMember).remark"
-                        class="text-xs text-gray-400 truncate max-w-[100px]"
+                        class="text-xs text-zx-text-subtle truncate max-w-[100px]"
                     >
                         {{ (member as GroupMember).remark }}
                     </span>
@@ -80,7 +81,7 @@ const handleEdit = () => {
                 class="p-2 rounded-2xl hover:bg-gray-100 transition-colors btn-touch flex-shrink-0"
                 title="编辑成员数据"
             >
-                <Edit2 class="w-4 h-4 text-gray-600" />
+                <Edit2 class="w-4 h-4 text-zx-text-muted" />
             </button>
         </div>
     </div>

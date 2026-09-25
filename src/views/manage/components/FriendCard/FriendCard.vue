@@ -29,16 +29,17 @@ const handleDeleteFriend = () => {
         <div class="p-4 flex flex-col gap-3">
             <!-- 头部：好友信息 -->
             <div class="flex items-center gap-3">
-                <img
+                <ZxAvatar
                     :src="friend.ava_url"
-                    :alt="friend.nickname"
-                    class="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-slate-200"
+                    :name="friend.nickname"
+                    size="lg"
+                    class="flex-shrink-0 border border-slate-200"
                 />
                 <div class="min-w-0 flex-1">
-                    <h3 class="text-base font-bold text-gray-800 truncate" :title="friend.nickname">
+                    <h3 class="text-base font-bold text-zx-text-strong truncate" :title="friend.nickname">
                         {{ friend.nickname }}
                     </h3>
-                    <p class="text-xs text-gray-500 mt-0.5">
+                    <p class="text-xs text-zx-text-muted mt-0.5">
                         ID: {{ friend.user_id }}
                     </p>
                 </div>
