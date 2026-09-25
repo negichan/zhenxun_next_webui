@@ -250,6 +250,7 @@
     --zx-color-primary-soft: #dbeafe;
     --zx-color-primary-tint: #eff6ff;
     --zx-color-dirty: #f97316;
+    --zx-color-on-dirty: #334155;
     --zx-color-success: #22c55e;
     --zx-color-success-soft: #dcfce7;
     --zx-color-warning: #f59e0b;
@@ -455,18 +456,6 @@
     --zx-teal-700: #0f766e;
     --zx-teal-800: #115e59;
     --zx-teal-900: #134e4a;
-
-    --el-color-primary: var(--zx-color-primary);
-    --el-color-primary-light-3: #60a5fa;
-    --el-color-primary-light-5: #93c5fd;
-    --el-color-primary-light-7: #bfdbfe;
-    --el-color-primary-light-8: #dbeafe;
-    --el-color-primary-light-9: #eff6ff;
-    --el-color-primary-dark-2: var(--zx-color-primary-hover);
-    --el-border-radius-base: var(--zx-radius-control);
-    --el-border-color: var(--zx-color-border);
-    --el-text-color-primary: var(--zx-color-text-strong);
-    --el-text-color-regular: var(--zx-color-text-muted);
 }
 
 .theme-zhenxun-dark {
@@ -488,6 +477,7 @@
     --zx-color-primary-soft: #27272a;
     --zx-color-primary-tint: #18181b;
     --zx-color-dirty: #fb923c;
+    --zx-color-on-dirty: #334155;
     --zx-color-success: #4ade80;
     --zx-color-success-soft: #14532d;
     --zx-color-warning: #fbbf24;
@@ -691,21 +681,6 @@
     --zx-teal-700: #5eead4;
     --zx-teal-800: #99f6e4;
     --zx-teal-900: #ccfbf1;
-
-    --el-color-primary: var(--zx-color-primary);
-    --el-color-primary-light-3: #f4f4f5;
-    --el-color-primary-light-5: #d4d4d8;
-    --el-color-primary-light-7: #52525b;
-    --el-color-primary-light-8: #3f3f46;
-    --el-color-primary-light-9: #27272a;
-    --el-color-primary-dark-2: var(--zx-color-primary-hover);
-    --el-border-radius-base: var(--zx-radius-control);
-    --el-border-color: var(--zx-color-border);
-    --el-text-color-primary: var(--zx-color-text-strong);
-    --el-text-color-regular: var(--zx-color-text-muted);
-    --el-bg-color: var(--zx-color-surface);
-    --el-bg-color-overlay: var(--zx-color-surface);
-    --el-fill-color-light: var(--zx-color-surface-muted);
 }
 
 @layer utilities {

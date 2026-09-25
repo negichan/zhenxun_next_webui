@@ -134,6 +134,12 @@ export function generateThemeFromColors(
 ): AppTheme {
     const p = hexToHsl(primaryColor);
     const isDark = mode === "dark";
+    // 未保存指示条色提前算出，底色与对比字共用同一份
+    const dirtyColor = hsl(
+        p.h + 180,
+        clamp(p.s + 15, 55, 95),
+        isDark ? clamp(p.l * 0.3 + 50, 52, 68) : clamp(p.l * 0.25 + 38, 38, 52),
+    );
 
     const cssVars: Record<string, string> = {
         ...(isDark ? darkColorScaleVars : colorScaleVars),
@@ -157,11 +163,9 @@ export function generateThemeFromColors(
         "--zx-color-on-primary": contrastTextFor(primaryColor),
         // 未保存指示条：主色色相 +180°，与主色可区分。
         // 亮度按主题表面约束：浅色主题压在中深（不接近白），深色主题抬在中亮（不接近黑）。
-        "--zx-color-dirty": hsl(
-            p.h + 180,
-            clamp(p.s + 15, 55, 95),
-            isDark ? clamp(p.l * 0.3 + 50, 52, 68) : clamp(p.l * 0.25 + 38, 38, 52),
-        ),
+        "--zx-color-dirty": dirtyColor,
+        // 未保存指示条之上的对比文字色（YIQ 感知亮度，同 on-primary 规则）
+        "--zx-color-on-dirty": contrastTextFor(dirtyColor),
         // 工作台「表 / SQL」标签顶条：同样由主色推导（色相偏移），随主题换色
         // 表 +120°、SQL +210°，与主色/dirty 都可区分；亮度约束同 dirty
         "--zx-color-tab-table": hsl(
