@@ -61,14 +61,18 @@ const onDismiss = () => {
 };
 
 const itemCls = (item: ZXContextMenuItem) => {
-    if (item.danger) return "text-red-500 hover:bg-red-50";
-    if (item.success) return "text-emerald-600 hover:bg-emerald-50";
-    return "text-slate-600 hover:bg-slate-100";
+    if (item.danger) return "text-red-500 hover:bg-zx-danger-soft";
+    if (item.success) return "text-emerald-600 hover:bg-zx-success-soft";
+    return "text-zx-text-muted hover:bg-slate-100";
 };
 
-const handleClick = (item: ZXContextMenuItem) => {
+const handleClick = (item: ZXContextMenuItem, e: MouseEvent) => {
     if (item.disabled || item.divider) return;
-    if (item.children?.length) return;
+    // 触控没有 hover：带子菜单的项点按直接展开
+    if (item.children?.length) {
+        openSubMenu(item, e);
+        return;
+    }
     hide();
     item.action?.();
 };
@@ -116,7 +120,7 @@ onUnmounted(() => {
         <div
             v-if="state.visible"
             ref="menuRef"
-            class="fixed z-9999 min-w-36 touch-none overflow-visible rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            class="fixed z-9999 flex min-w-36 flex-col gap-0.5 touch-manipulation overflow-visible rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg"
             :style="{ left: `${pos.x}px`, top: `${pos.y}px` }"
             @contextmenu.prevent
         >
@@ -126,16 +130,16 @@ onUnmounted(() => {
             >
                 <div
                     v-if="item.divider"
-                    class="my-1 h-px bg-slate-200/80"
+                    class="my-0.5 h-px bg-slate-200/80"
                     aria-hidden="true"
                 />
                 <button
                     v-else
                     :disabled="item.disabled"
                     :class="itemCls(item)"
-                    class="flex w-full cursor-pointer items-center gap-2 px-3.5 py-1.5 text-left text-sm transition-colors disabled:pointer-events-none disabled:opacity-40"
+                    class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors disabled:pointer-events-none disabled:opacity-40"
                     type="button"
-                    @click="handleClick(item)"
+                    @click="handleClick(item, $event)"
                     @mouseenter="openSubMenu(item, $event)"
                     @mouseleave="!item.children?.length && (subMenu = null)"
                 >
@@ -166,7 +170,7 @@ onUnmounted(() => {
         <div
             v-if="state.visible && subMenu"
             ref="subMenuRef"
-            class="fixed z-10000 min-w-32 touch-none rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            class="fixed z-10000 flex min-w-32 flex-col gap-0.5 touch-none rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg"
             :style="{ left: `${subMenu.x}px`, top: `${subMenu.y}px` }"
             @click.stop
         >
@@ -176,16 +180,16 @@ onUnmounted(() => {
             >
                 <div
                     v-if="item.divider"
-                    class="my-1 h-px bg-slate-200/80"
+                    class="my-0.5 h-px bg-slate-200/80"
                     aria-hidden="true"
                 />
                 <button
                     v-else
                     :disabled="item.disabled"
                     :class="itemCls(item)"
-                    class="flex w-full cursor-pointer items-center gap-2 px-3.5 py-1.5 text-left text-sm transition-colors disabled:pointer-events-none disabled:opacity-40"
+                    class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors disabled:pointer-events-none disabled:opacity-40"
                     type="button"
-                    @click="handleClick(item)"
+                    @click="handleClick(item, $event)"
                 >
                     <component
                         :is="item.icon"

@@ -39,6 +39,8 @@ interface Props {
     closeOnEsc?: boolean;
     /** 自定义弹窗主体额外样式类 */
     contentClass?: string;
+    /** 主体滚动区样式（如 p-0，给自定义头尾布局用） */
+    bodyClass?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -49,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
     closeOnClickOverlay: true,
     closeOnEsc: true,
     contentClass: "",
+    bodyClass: "",
 });
 
 const emit = defineEmits<{
@@ -122,7 +125,7 @@ const maxWidthClass = computed(() => {
                 @click="handleOverlayClick"
             >
                 <div
-                    class="modal-content relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl transition-all"
+                    class="modal-content relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
                     :class="[maxWidthClass, contentClass]"
                     @click.stop
                 >
@@ -140,13 +143,13 @@ const maxWidthClass = computed(() => {
                                 />
                                 <div class="min-w-0">
                                     <h3
-                                        class="truncate text-base font-semibold text-slate-800 sm:text-lg"
+                                        class="truncate text-base font-semibold text-zx-text-strong sm:text-lg"
                                     >
                                         {{ title }}
                                     </h3>
                                     <p
                                         v-if="subtitle"
-                                        class="mt-0.5 truncate text-xs text-slate-400"
+                                        class="mt-0.5 truncate text-xs text-zx-text-subtle"
                                     >
                                         {{ subtitle }}
                                     </p>
@@ -166,7 +169,10 @@ const maxWidthClass = computed(() => {
                     </slot>
 
                     <!-- 主体内容区域（默认支持滚动） -->
-                    <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+                    <div
+                        class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6"
+                        :class="bodyClass"
+                    >
                         <slot :close="handleClose" />
                     </div>
 

@@ -21,7 +21,7 @@ const pos = ref({ x: 0, y: 0 });
 
 const PANEL_WIDTH = 240;
 
-/** 与触发器右对齐，视口内防溢出，底部放不下时向上翻 */
+/** 优先左对齐触发器，视口右侧空间不足时自动向内自适应，底部放不下时向上翻 */
 const updatePos = () => {
     const trigger = triggerRef.value;
     const panel = panelRef.value;
@@ -29,7 +29,7 @@ const updatePos = () => {
     const r = trigger.getBoundingClientRect();
     const x = Math.max(
         8,
-        Math.min(r.right - PANEL_WIDTH, window.innerWidth - PANEL_WIDTH - 8),
+        Math.min(r.left, window.innerWidth - PANEL_WIDTH - 8),
     );
     let y = r.bottom + 6;
     if (y + panel.offsetHeight > window.innerHeight - 8) {
@@ -153,17 +153,17 @@ const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
     <button
         ref="triggerRef"
         class="flex w-full cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left text-xs transition-colors hover:border-slate-300"
-        :class="modelValue ? 'text-slate-700' : 'text-slate-400'"
+        :class="modelValue ? 'text-zx-text' : 'text-zx-text-subtle'"
         type="button"
         @click="toggle"
     >
-        <CalendarDays class="h-3.5 w-3.5 shrink-0 text-slate-400" />
+        <CalendarDays class="h-3.5 w-3.5 shrink-0 text-zx-text-subtle" />
         <span class="min-w-0 flex-1 truncate">
             {{ modelValue || placeholder }}
         </span>
         <X
             v-if="modelValue"
-            class="h-3 w-3 shrink-0 rounded-full p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            class="h-3 w-3 shrink-0 rounded-full p-0.5 text-zx-text-subtle hover:bg-slate-100 hover:text-zx-text-muted"
             @click.stop="clear"
         />
     </button>
@@ -178,17 +178,17 @@ const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
         >
             <div class="flex items-center justify-between pb-2">
                 <button
-                    class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text-muted"
                     type="button"
                     @click="prevMonth"
                 >
                     <ChevronLeft class="h-4 w-4" />
                 </button>
-                <p class="text-sm font-semibold text-slate-700">
+                <p class="text-sm font-semibold text-zx-text">
                     {{ viewYear }} 年 {{ viewMonth + 1 }} 月
                 </p>
                 <button
-                    class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text-muted"
                     type="button"
                     @click="nextMonth"
                 >
@@ -197,7 +197,7 @@ const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
             </div>
 
             <div
-                class="grid grid-cols-7 pb-1 text-center text-[10px] text-slate-400"
+                class="grid grid-cols-7 pb-1 text-center text-[10px] text-zx-text-subtle"
             >
                 <span v-for="w in weekdays" :key="w">{{ w }}</span>
             </div>
@@ -208,7 +208,7 @@ const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
                     :key="i"
                     class="mx-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-xs transition-colors"
                     :class="[
-                        cell.inMonth ? 'text-slate-700' : 'text-slate-300',
+                        cell.inMonth ? 'text-zx-text' : 'text-zx-text-subtle',
                         format(cell.date) === modelValue
                             ? 'bg-zx-primary font-semibold text-[color:var(--zx-color-on-primary)]'
                             : format(cell.date) === todayStr
@@ -222,13 +222,20 @@ const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
                 </button>
             </div>
 
-            <div class="flex justify-end pt-2">
+            <div class="flex items-center justify-between border-t border-slate-100 pt-2">
                 <button
-                    class="cursor-pointer rounded-full px-3 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100"
+                    class="cursor-pointer rounded-md px-2 py-0.5 text-xs text-zx-primary transition-colors hover:bg-slate-100"
+                    type="button"
+                    @click="select(new Date())"
+                >
+                    今天
+                </button>
+                <button
+                    class="cursor-pointer rounded-md px-2 py-0.5 text-xs text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text-muted"
                     type="button"
                     @click="clear"
                 >
-                    清除筛选
+                    清除
                 </button>
             </div>
         </div>

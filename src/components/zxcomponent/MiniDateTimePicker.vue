@@ -73,11 +73,12 @@ const { pushOverlay, removeOverlay } = useOverlayStack();
 
 const showDate = computed(() => props.type === "date" || props.type === "datetime");
 const showTime = computed(() => props.type === "time" || props.type === "datetime");
+const showPrecision = computed(() => props.type === "datetime");
 
 /** 面板宽度：按形态 */
 const PANEL_W = computed(() => {
-    if (props.type === "date") return 360;
-    if (props.type === "time") return 300;
+    if (props.type === "date") return 340;
+    if (props.type === "time") return 168;
     return 600;
 });
 
@@ -645,7 +646,7 @@ const updatePos = () => {
     if (!trigger || !panel) return;
     const r = trigger.getBoundingClientRect();
     const w = PANEL_W.value;
-    const x = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+    const x = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
     let y = r.bottom + 6;
     if (y + panel.offsetHeight > window.innerHeight - 8) {
         y = Math.max(8, r.top - panel.offsetHeight - 6);
@@ -845,7 +846,7 @@ defineExpose({ open, toggle, openPicker, closePicker });
                                 c.key === selectedDay
                                     ? 'bg-zx-primary font-medium text-[color:var(--zx-color-on-primary)]'
                                     : c.key === todayStr && c.inMonth
-                                      ? 'bg-zx-dirty font-medium text-white'
+                                      ? 'bg-zx-dirty font-medium text-[color:var(--zx-color-on-dirty)]'
                                       : c.inMonth
                                         ? 'text-zx-text hover:bg-slate-100'
                                         : 'text-zx-text-subtle hover:bg-slate-50'
@@ -1039,9 +1040,9 @@ defineExpose({ open, toggle, openPicker, closePicker });
                 </button>
             </div>
 
-            <!-- 微秒 / 时区：独立列，高度与相邻卡片对齐 -->
+            <!-- 微秒 / 时区：独立列，仅在完整 datetime 毫秒时区形态下展示 -->
             <div
-                v-if="showTime"
+                v-if="showPrecision"
                 class="flex w-[140px] shrink-0 flex-col justify-center gap-3 self-stretch rounded-xl border border-slate-200 bg-white p-2"
             >
                 <label class="flex flex-col gap-1">

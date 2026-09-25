@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { Minus, Plus } from "lucide-vue-next";
 
 /**
  * 数字步进器（替代 Element Plus el-input-number）：[−] 输入框 [+]，
  * 边界内钳制、step 步进、precision 保留小数；打字过程不回写，
  * 失焦 / 回车时提交，非法内容回退到当前值。
+ * 悬浮与聚焦 1px 主题色边框（hover / focus-within），transition-colors duration-200 平滑过渡。
  *
  * 用法：
  *   <ZxInputNumber v-model="gold" :min="0" :max="999999" :step="100" />
+ *   <ZxInputNumber v-model="n" size="sm" class="w-full" />
  */
 const modelValue = defineModel<number>({ default: 0 });
 
@@ -23,6 +26,8 @@ const props = withDefaults(
         precision?: number;
         disabled?: boolean;
         placeholder?: string;
+        /** 尺寸：sm (32px) | md (36px) | lg (40px)，宽度默认 w-full，可用 class 覆盖 */
+        size?: "sm" | "md" | "lg";
     }>(),
     {
         min: -Infinity,
@@ -31,6 +36,7 @@ const props = withDefaults(
         precision: 0,
         disabled: false,
         placeholder: "",
+        size: "md",
     },
 );
 
@@ -92,31 +98,42 @@ const atMax = computed(
     () => Number.isFinite(modelValue.value) && modelValue.value >= props.max,
 );
 
+const sizeClass = computed(() => {
+    switch (props.size) {
+        case "sm":
+            return { root: "h-8", btn: "w-7", icon: "h-3 w-3" };
+        case "lg":
+            return { root: "h-10", btn: "w-9", icon: "h-4 w-4" };
+        case "md":
+        default:
+            return { root: "h-9", btn: "w-8", icon: "h-3.5 w-3.5" };
+    }
+});
+
 const btnClasses =
-    "flex h-full w-8 shrink-0 cursor-pointer items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-zx-primary disabled:cursor-not-allowed disabled:opacity-40";
+    "flex h-full shrink-0 cursor-pointer items-center justify-center text-zx-text-subtle transition-colors duration-200 hover:bg-slate-200/60 hover:text-zx-text disabled:cursor-not-allowed disabled:opacity-30";
 </script>
 
 <template>
     <div
-        class="flex h-9 w-full items-center overflow-hidden rounded-full border border-slate-300 bg-white transition-colors focus-within:border-zx-primary"
-        :class="disabled ? 'opacity-50' : ''"
+        v-tile-glow
+        class="group flex w-full items-center overflow-hidden rounded-full border border-slate-200 bg-white transition-colors duration-200 hover:border-zx-primary focus-within:border-zx-primary"
+        :class="[sizeClass.root, disabled ? 'cursor-not-allowed bg-slate-100 opacity-60' : '']"
     >
         <button
             type="button"
             :disabled="disabled || atMin"
-            :class="btnClasses"
+            :class="[btnClasses, sizeClass.btn]"
             aria-label="减少"
             @click="stepBy(-step)"
         >
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M5 12h14" />
-            </svg>
+            <Minus :class="sizeClass.icon" />
         </button>
         <input
+            v-model="draft"
             type="text"
             inputmode="decimal"
-            class="h-full min-w-0 flex-1 border-x border-slate-200 bg-transparent text-center text-sm text-slate-700 focus:outline-none"
-            v-model="draft"
+            class="h-full min-w-0 flex-1 border-x border-slate-200 bg-transparent text-center text-xs font-mono text-zx-text outline-none transition-colors duration-200 group-hover:border-zx-primary/30 group-focus-within:border-zx-primary/40 focus:outline-none focus:ring-0"
             :disabled="disabled"
             :placeholder="placeholder"
             @blur="commit(draft)"
@@ -125,13 +142,11 @@ const btnClasses =
         <button
             type="button"
             :disabled="disabled || atMax"
-            :class="btnClasses"
+            :class="[btnClasses, sizeClass.btn]"
             aria-label="增加"
             @click="stepBy(step)"
         >
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Plus :class="sizeClass.icon" />
         </button>
     </div>
 </template>
