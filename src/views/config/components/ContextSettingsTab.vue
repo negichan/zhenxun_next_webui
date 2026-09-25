@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Brain, FileCode, Sliders, Sparkles } from "lucide-vue-next";
 import ZxSwitch from "@/components/zxcomponent/ZxSwitch.vue";
+import ZxInputNumber from "@/components/zxcomponent/ZxInputNumber.vue";
 import type { ContextSettingsItem } from "@/types/ai.types";
 
 interface Props {
@@ -49,11 +50,12 @@ defineProps<Props>();
                     <span class="text-[11px] text-zx-text-subtle">
                         &le; 1.0 为窗口比例，&gt; 1.0 为绝对 Token 数
                     </span>
-                    <input
-                        v-model.number="contextSettings.llm_summary.trigger_threshold"
-                        type="number"
-                        step="0.05"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="contextSettings.llm_summary.trigger_threshold"
+                        :step="0.05"
+                        :precision="2"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
@@ -64,10 +66,10 @@ defineProps<Props>();
                     <span class="text-[11px] text-zx-text-subtle">
                         超过该轮数触发压缩，设为 0 表示不限
                     </span>
-                    <input
-                        v-model.number="contextSettings.llm_summary.max_history_turns"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="contextSettings.llm_summary.max_history_turns"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
@@ -78,10 +80,10 @@ defineProps<Props>();
                     <span class="text-[11px] text-zx-text-subtle">
                         在总结之外原样完整保留的最近轮数
                     </span>
-                    <input
-                        v-model.number="contextSettings.llm_summary.keep_recent_turns"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="contextSettings.llm_summary.keep_recent_turns"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
@@ -92,12 +94,14 @@ defineProps<Props>();
                     <span class="text-[11px] text-zx-text-subtle">
                         推荐选用高性价比且速度快的小模型
                     </span>
-                    <input
+                    <ZXInput
                         v-model="contextSettings.llm_summary.summarization_model"
-                        type="text"
                         list="summary-models-list"
                         placeholder="留空则使用全局默认"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono text-zx-text focus:border-zx-primary focus:outline-none"
+                        rounded="xl"
+                        size="sm"
+                        input-class="font-mono"
+                        class="mt-1"
                     />
                     <datalist id="summary-models-list">
                         <option
@@ -117,11 +121,11 @@ defineProps<Props>();
                 <label class="font-medium text-xs text-zx-text-strong">
                     指导总结的系统提示词 (Prompt)
                 </label>
-                <textarea
+                <ZXInput
                     v-model="contextSettings.llm_summary.summarization_prompt"
-                    rows="3"
-                    class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 p-3 text-xs text-zx-text focus:border-zx-primary focus:bg-white focus:outline-none transition"
-                ></textarea>
+                    type="textarea"
+                    :rows="3"
+                />
             </div>
         </div>
 
@@ -147,10 +151,10 @@ defineProps<Props>();
                     <span class="text-xs font-medium text-zx-text-strong">
                         保留窗口轮数 (0 为无限制)
                     </span>
-                    <input
-                        v-model.number="contextSettings.vision_window_size"
-                        type="number"
-                        class="w-24 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-center text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="contextSettings.vision_window_size"
+                        size="sm"
+                        class="w-28"
                     />
                 </div>
             </div>
@@ -180,27 +184,25 @@ defineProps<Props>();
                 >
                     <div class="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50/50 p-2.5">
                         <span class="text-[11px] font-medium text-zx-text-strong">触发阈值</span>
-                        <input
-                            v-model.number="contextSettings.tool_pruning.trigger_threshold"
-                            type="number"
-                            step="0.05"
-                            class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                        <ZxInputNumber
+                            v-model="contextSettings.tool_pruning.trigger_threshold"
+                            :step="0.05"
+                            :precision="2"
+                            size="sm"
                         />
                     </div>
                     <div class="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50/50 p-2.5">
                         <span class="text-[11px] font-medium text-zx-text-strong">最大工具轮数</span>
-                        <input
-                            v-model.number="contextSettings.tool_pruning.max_history_turns"
-                            type="number"
-                            class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                        <ZxInputNumber
+                            v-model="contextSettings.tool_pruning.max_history_turns"
+                            size="sm"
                         />
                     </div>
                     <div class="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50/50 p-2.5">
                         <span class="text-[11px] font-medium text-zx-text-strong">保留最新轮数</span>
-                        <input
-                            v-model.number="contextSettings.tool_pruning.keep_recent_turns"
-                            type="number"
-                            class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-center text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                        <ZxInputNumber
+                            v-model="contextSettings.tool_pruning.keep_recent_turns"
+                            size="sm"
                         />
                     </div>
                 </div>

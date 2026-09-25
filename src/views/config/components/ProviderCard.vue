@@ -145,7 +145,7 @@ const copyEndpoint = async () => {
                         >
                             {{ provider.api_base.replace(/^https?:\/\//, "") }}
                         </span>
-                        <span v-else class="text-slate-400 italic text-[11px]">
+                        <span v-else class="text-zx-text-subtle italic text-[11px]">
                             官方默认端点
                         </span>
                         <!-- 复制端点按钮 -->
@@ -238,7 +238,7 @@ const copyEndpoint = async () => {
                     size="sm"
                     circle
                     title="删除渠道"
-                    class="opacity-70 hover:opacity-100 hover:text-red-500"
+                    class="opacity-70 hover:opacity-100 hover:text-zx-danger"
                     @click.stop="emit('delete', provider.name)"
                 >
                     <Trash2 class="h-3.5 w-3.5" />

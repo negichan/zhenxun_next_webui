@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Bot, Cpu, Network, ShieldCheck, Terminal } from "lucide-vue-next";
 import ZxSwitch from "@/components/zxcomponent/ZxSwitch.vue";
+import ZxInputNumber from "@/components/zxcomponent/ZxInputNumber.vue";
 import type {
     AgentSettingsItem,
     ClientSettingsItem,
@@ -42,30 +43,30 @@ defineProps<Props>();
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">单次工具最大循环数</span>
                     <span class="text-[11px] text-zx-text-subtle">单轮任务内工具调用循环上限</span>
-                    <input
-                        v-model.number="agentSettings.max_cycles"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="agentSettings.max_cycles"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">全局绝对循环上限</span>
                     <span class="text-[11px] text-zx-text-subtle">跨嵌套子智能体全流程总循环上限</span>
-                    <input
-                        v-model.number="agentSettings.global_max_cycles"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="agentSettings.global_max_cycles"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">反思重试次数</span>
                     <span class="text-[11px] text-zx-text-subtle">工具返回异常或反思不达标时的最大重试</span>
-                    <input
-                        v-model.number="agentSettings.reflexion_retries"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="agentSettings.reflexion_retries"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
             </div>
@@ -117,37 +118,37 @@ defineProps<Props>();
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">请求超时时间 (秒)</span>
-                    <input
-                        v-model.number="clientSettings.timeout"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="clientSettings.timeout"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">网络异常最大重试次数</span>
-                    <input
-                        v-model.number="clientSettings.max_retries"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="clientSettings.max_retries"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">重试基础延迟 (秒)</span>
-                    <input
-                        v-model.number="clientSettings.retry_delay"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="clientSettings.retry_delay"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
 
                 <div class="flex flex-col gap-1.5 rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5">
                     <span class="font-medium text-xs text-zx-text-strong">结构化生成重试次数</span>
-                    <input
-                        v-model.number="clientSettings.structured_retries"
-                        type="number"
-                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    <ZxInputNumber
+                        v-model="clientSettings.structured_retries"
+                        size="sm"
+                        class="mt-1"
                     />
                 </div>
             </div>
@@ -215,18 +216,21 @@ defineProps<Props>();
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <span class="text-[11px] font-medium text-zx-text-muted">沙箱驱动类型</span>
-                            <input
+                            <ZXInput
                                 v-model="sandbox.sandbox_type"
-                                type="text"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                                placeholder=""
+                                rounded="xl"
+                                size="sm"
                             />
                         </div>
                         <div class="space-y-1">
                             <span class="text-[11px] font-medium text-zx-text-muted">Docker 镜像名称</span>
-                            <input
+                            <ZXInput
                                 v-model="sandbox.docker_image"
-                                type="text"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono text-zx-text focus:border-zx-primary focus:outline-none"
+                                placeholder=""
+                                rounded="xl"
+                                size="sm"
+                                input-class="font-mono"
                             />
                         </div>
                     </div>
