@@ -4,7 +4,7 @@
 
 @font-face {
     font-family: "Harmony";
-    src: url("./fonts/HarmonyOS_Sans_Regular.ttf");
+    src: url("./fonts/HarmonyOS_Sans_Regular.woff2") format("woff2");
     font-weight: normal;
     font-display: swap; /* 避免布局偏移 */
 }
@@ -33,39 +33,78 @@ body {
     }
 }
 
-/* 自定义滚动条样式（全局原生与 Monaco 统一风格：6px 胶囊圆角、透明轨道） */
+/* ==================== 全局唯一滚动条 ====================
+   3px 胶囊滑块 + 透明轨道，无箭头按钮；
+   各业务组件不要再写局部 ::-webkit-scrollbar，需要隐藏用 .scrollbar-hide
+   注意：Chromium 上一旦写了 scrollbar-width/scrollbar-color，
+   ::-webkit-scrollbar* 会整体失效并退回系统滚动条（带上下箭头），
+   因此这里只用 -webkit 伪元素自绘，不要混用标准属性。
+   ========================================================= */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 3px;
+    height: 3px;
 }
 
-::-webkit-scrollbar-thumb {
-    border-radius: 10px;
-    background: var(--zx-color-border);
-}
-::-webkit-scrollbar-thumb:hover {
-    background: var(--zx-slate-300);
+/* Windows Chromium 的上下箭头按钮：整组伪元素压死为 0 */
+::-webkit-scrollbar-button:single-button,
+::-webkit-scrollbar-button:vertical:start:increment,
+::-webkit-scrollbar-button:vertical:start:decrement,
+::-webkit-scrollbar-button:vertical:end:increment,
+::-webkit-scrollbar-button:vertical:end:decrement,
+::-webkit-scrollbar-button:horizontal:start:increment,
+::-webkit-scrollbar-button:horizontal:start:decrement,
+::-webkit-scrollbar-button:horizontal:end:increment,
+::-webkit-scrollbar-button:horizontal:end:decrement,
+::-webkit-scrollbar-button:vertical:decrement,
+::-webkit-scrollbar-button:vertical:increment,
+::-webkit-scrollbar-button:horizontal:decrement,
+::-webkit-scrollbar-button:horizontal:increment {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
 }
 
-::-webkit-scrollbar-thumb,
-::-webkit-scrollbar-track {
-    border: 0;
+::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+::-webkit-scrollbar-corner {
     background: transparent;
 }
 
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--zx-color-border) transparent;
+::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-/* 文件编辑器：去掉原生滚动条上下箭头按钮（Windows Chromium 默认绘制） */
-.file-editor-modal ::-webkit-scrollbar-button {
-    display: none !important;
+::-webkit-scrollbar-thumb {
+    border: 0;
+    border-radius: 10px;
+    /* 跟随主题主色；用透明度而非 color-mix，避免部分构建链解析失败 */
+    background-color: var(--zx-color-primary);
+    opacity: 0.45;
 }
 
-/* Monaco 编辑器虚拟滚动条外观与全局统一 */
+::-webkit-scrollbar-thumb:hover {
+    opacity: 0.75;
+}
+
+/* Firefox 保留系统细滚动条（本身无箭头）。
+   Chromium 不要写 scrollbar-width/color，否则会退回带箭头的系统滚动条 */
+
+/* Monaco 编辑器虚拟滚动条外观与全局统一（跟随主题主色） */
 .monaco-editor .scrollbar .slider {
     border-radius: 10px !important;
+    background-color: var(--zx-color-primary) !important;
+    opacity: 0.45;
+}
+.monaco-editor .scrollbar .slider:hover {
+    opacity: 0.75;
 }
 .monaco-editor .scrollbar.vertical,
 .monaco-editor .scrollbar.horizontal {

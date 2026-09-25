@@ -69,6 +69,8 @@
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;
+    /* 触控：去掉双击缩放延迟，避免点按被浏览器当成手势 */
+    touch-action: manipulation;
 }
 
 .btn-touch:active {
