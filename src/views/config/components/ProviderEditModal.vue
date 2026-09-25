@@ -8,14 +8,15 @@ import {
     Loader2,
     Play,
     Plus,
-    Search,
     Sparkles,
     Trash2,
     X,
 } from "lucide-vue-next";
-import { modalJelly } from "@/composables/useGsapTransition";
 import ZxButton from "@/components/zxcomponent/ZxButton.vue";
+import ZxModal from "@/components/zxcomponent/ZxModal.vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import ZxSwitch from "@/components/zxcomponent/ZxSwitch.vue";
+import ZxInputNumber from "@/components/zxcomponent/ZxInputNumber.vue";
 import ProviderIcon from "./ProviderIcon.vue";
 import { ZXNotification } from "@/services/ui";
 import { aiApi } from "@/utils/api-next";
@@ -449,26 +450,15 @@ const handleSave = () => {
 </script>
 
 <template>
-    <Teleport to="body">
-        <Transition
-            :css="false"
-            @enter="modalJelly.onEnter"
-            @leave="modalJelly.onLeave"
-        >
-            <div
-                v-if="visible"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-            >
-                <!-- 遮罩 -->
-                <div
-                    class="glass-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
-                    @click="emit('close')"
-                />
-
-                <!-- 弹窗容器 -->
-                <div
-                    class="modal-content relative z-10 flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl transition-all"
-                >
+    <ZxModal
+        :model-value="visible"
+        size="lg"
+        width="max-w-2xl"
+        :closable="false"
+        body-class="!p-0 !overflow-hidden"
+        @update:model-value="val => { if (!val) emit('close'); }"
+    >
+        <div class="relative flex h-full min-h-0 flex-col">
                     <!-- models.dev 挑选服务商覆盖面板 (轻量层) -->
                     <Transition
                         enter-active-class="transition-all duration-200 ease-out"
@@ -495,7 +485,7 @@ const handleSave = () => {
                                 </div>
                                 <button
                                     type="button"
-                                    class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+                                    class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle hover:bg-slate-100 hover:text-zx-text-muted transition"
                                     @click="showModelsDevPicker = false"
                                 >
                                     <X class="h-4 w-4" />
@@ -504,24 +494,14 @@ const handleSave = () => {
 
                             <!-- 搜索栏 -->
                             <div class="p-3.5 border-b border-slate-100 bg-slate-50/40 shrink-0">
-                                <div class="relative flex items-center">
-                                    <Search class="absolute left-3.5 h-3.5 w-3.5 text-zx-text-subtle" />
-                                    <input
-                                        v-model="modelsDevSearch"
-                                        type="text"
-                                        placeholder="搜索服务商名称或标识 (如 Groq, Moonshot, Mistral, Together, Anthropic...)"
-                                        class="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 py-2 text-xs text-zx-text transition focus:border-zx-primary focus:outline-none"
-                                        autofocus
-                                    />
-                                    <button
-                                        v-if="modelsDevSearch"
-                                        type="button"
-                                        class="absolute right-3 text-zx-text-subtle hover:text-zx-text cursor-pointer"
-                                        @click="modelsDevSearch = ''"
-                                    >
-                                        <X class="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
+                                <ZXInput
+                                    v-model="modelsDevSearch"
+                                    type="search"
+                                    rounded="xl"
+                                    size="sm"
+                                    placeholder="搜索服务商名称或标识 (如 Groq, Moonshot, Mistral, Together, Anthropic...)"
+                                    autofocus
+                                />
                             </div>
 
                             <!-- 服务商列表 -->
@@ -533,9 +513,11 @@ const handleSave = () => {
                                 </div>
 
                                 <!-- 空状态 -->
-                                <div v-else-if="filteredModelsDevProviders.length === 0" class="py-16 text-center text-xs text-zx-text-muted">
-                                    未找到匹配的服务商
-                                </div>
+                                <ZxEmptyState
+                                    v-else-if="filteredModelsDevProviders.length === 0"
+                                    size="sm"
+                                    text="未找到匹配的服务商"
+                                />
 
                                 <!-- 列表项 -->
                                 <div
@@ -616,7 +598,7 @@ const handleSave = () => {
                             <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200/80">
                                 <span
                                     class="text-xs font-medium"
-                                    :class="form.enabled ? 'text-emerald-600' : 'text-slate-400'"
+                                    :class="form.enabled ? 'text-emerald-600' : 'text-zx-text-subtle'"
                                 >
                                     {{ form.enabled ? "已启用" : "已禁用" }}
                                 </span>
@@ -625,7 +607,7 @@ const handleSave = () => {
 
                             <button
                                 type="button"
-                                class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                                class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition hover:bg-slate-100 hover:text-zx-text-muted"
                                 @click="emit('close')"
                             >
                                 <X class="h-4 w-4" />
@@ -677,12 +659,13 @@ const handleSave = () => {
                                 <label class="font-medium text-xs text-zx-text-strong">
                                     提供商名称 <span class="text-red-500">*</span>
                                 </label>
-                                <input
+                                <ZXInput
                                     v-model="form.name"
-                                    type="text"
                                     placeholder="例如 DeepSeek, Gemini"
                                     :disabled="isEditMode"
-                                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none disabled:bg-slate-100 disabled:text-slate-400 font-medium"
+                                    rounded="xl"
+                                    size="sm"
+                                    input-class="font-medium"
                                 />
                             </div>
 
@@ -694,11 +677,12 @@ const handleSave = () => {
                                     </label>
                                     <span class="text-[11px] text-zx-text-subtle">点击快捷切换</span>
                                 </div>
-                                <input
+                                <ZXInput
                                     v-model="form.api_type"
-                                    type="text"
                                     placeholder="openai, gemini, deepseek 等"
-                                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none font-mono"
+                                    rounded="xl"
+                                    size="sm"
+                                    input-class="font-mono"
                                 />
                                 <div class="flex flex-wrap items-center gap-1.5 pt-1">
                                     <button
@@ -722,11 +706,12 @@ const handleSave = () => {
                             <label class="font-medium text-xs text-zx-text-strong">
                                 接口基础地址 (API Base URL)
                             </label>
-                            <input
+                            <ZXInput
                                 v-model="form.api_base"
-                                type="text"
                                 placeholder="例如 https://api.deepseek.com (留空使用协议默认)"
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none font-mono"
+                                rounded="xl"
+                                size="sm"
+                                input-class="font-mono"
                             />
                         </div>
 
@@ -751,11 +736,12 @@ const handleSave = () => {
                                     </span>
                                 </div>
                             </div>
-                            <textarea
+                            <ZXInput
                                 v-model="form.api_key_str"
-                                rows="2"
+                                type="textarea"
+                                :rows="2"
                                 :placeholder="showKeyPlain ? 'sk-xxxxxxxxxxxxxxxxxxxxxxxx' : '••••••••••••••••••••••••'"
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none font-mono leading-relaxed"
+                                input-class="font-mono leading-relaxed"
                             />
                         </div>
 
@@ -769,34 +755,34 @@ const handleSave = () => {
                                     <label class="font-medium text-[11px] text-zx-text-muted">
                                         超时时间 (秒)
                                     </label>
-                                    <input
-                                        v-model.number="form.timeout"
-                                        type="number"
+                                    <ZxInputNumber
+                                        v-model="form.timeout"
+                                        size="sm"
                                         placeholder="180"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none"
                                     />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="font-medium text-[11px] text-zx-text-muted">
                                         默认采样温度
                                     </label>
-                                    <input
-                                        v-model.number="form.temperature"
-                                        type="number"
-                                        step="0.1"
+                                    <ZxInputNumber
+                                        :model-value="form.temperature ?? 0"
+                                        :step="0.1"
+                                        :precision="2"
+                                        size="sm"
                                         placeholder="默认 (如 0.7)"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none"
+                                        @update:model-value="(v: number) => (form.temperature = v)"
                                     />
                                 </div>
                                 <div class="space-y-1">
                                     <label class="font-medium text-[11px] text-zx-text-muted">
                                         最大输出 Token
                                     </label>
-                                    <input
-                                        v-model.number="form.max_output_tokens"
-                                        type="number"
+                                    <ZxInputNumber
+                                        :model-value="form.max_output_tokens ?? 0"
+                                        size="sm"
                                         placeholder="不限制"
-                                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none"
+                                        @update:model-value="(v: number) => (form.max_output_tokens = v)"
                                     />
                                 </div>
                             </div>
@@ -821,11 +807,13 @@ const handleSave = () => {
 
                             <!-- 添加模型输入框 -->
                             <div class="flex gap-2">
-                                <input
+                                <ZXInput
                                     v-model="newModelInput"
-                                    type="text"
                                     placeholder="输入模型标识（支持逗号或空格批量添加）"
-                                    class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-xs text-zx-text transition focus:border-zx-primary focus:bg-white focus:outline-none font-mono"
+                                    rounded="xl"
+                                    size="sm"
+                                    input-class="font-mono"
+                                    class="flex-1"
                                     @keydown.enter.prevent="addModel"
                                 />
                                 <ZxButton variant="primary" size="sm" @click="addModel">
@@ -866,7 +854,7 @@ const handleSave = () => {
                                         <!-- 测通按钮 -->
                                         <button
                                             type="button"
-                                            class="p-1 rounded-lg text-slate-400 hover:text-zx-primary hover:bg-slate-100 transition cursor-pointer"
+                                            class="p-1 rounded-lg text-zx-text-subtle hover:text-zx-primary hover:bg-slate-100 transition cursor-pointer"
                                             title="测试此模型连通性"
                                             :disabled="modelTestState[model.model_name]?.loading"
                                             @click="handleTestModel(model.model_name)"
@@ -881,7 +869,7 @@ const handleSave = () => {
                                         <!-- 移除按钮 -->
                                         <button
                                             type="button"
-                                            class="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 transition cursor-pointer"
+                                            class="p-1 rounded-lg text-zx-text-subtle hover:text-zx-danger hover:bg-slate-100 transition cursor-pointer"
                                             title="移除模型"
                                             @click="removeModel(idx)"
                                         >
@@ -937,8 +925,6 @@ const handleSave = () => {
                             </ZxButton>
                         </div>
                     </div>
-                </div>
-            </div>
-        </Transition>
-    </Teleport>
+        </div>
+    </ZxModal>
 </template>

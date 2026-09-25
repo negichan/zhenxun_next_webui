@@ -13,6 +13,7 @@ import {
     X,
 } from "lucide-vue-next";
 import ZxButton from "@/components/zxcomponent/ZxButton.vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import ZxTag from "@/components/zxcomponent/ZxTag.vue";
 import type { DefaultModelsItem } from "@/types/ai.types";
 
@@ -138,12 +139,13 @@ const handleRemoveModelFromGroup = (groupName: string, idx: number) => {
 
                     <!-- 模型输入框 + 快捷选单 datalist -->
                     <div class="mt-1">
-                        <input
+                        <ZXInput
                             v-model="defaultModels[task.key]"
-                            type="text"
                             :list="`models-list-${task.key}`"
                             :placeholder="task.placeholder"
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-mono text-zx-text transition focus:border-zx-primary focus:outline-none"
+                            rounded="xl"
+                            size="sm"
+                            input-class="font-mono"
                         />
                         <datalist :id="`models-list-${task.key}`">
                             <option
@@ -194,11 +196,12 @@ const handleRemoveModelFromGroup = (groupName: string, idx: number) => {
                 v-if="showAddGroup"
                 class="flex items-center gap-2 rounded-2xl border border-dashed border-zx-primary/40 bg-zx-primary-soft/20 p-3"
             >
-                <input
+                <ZXInput
                     v-model="newGroupName"
-                    type="text"
                     placeholder="输入路由组标识 (如 cheap_models, fast_models)"
-                    class="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs text-zx-text focus:border-zx-primary focus:outline-none"
+                    rounded="xl"
+                    size="sm"
+                    class="flex-1"
                     @keydown.enter.prevent="handleCreateGroup"
                 />
                 <ZxButton variant="primary" size="sm" @click="handleCreateGroup">
@@ -243,32 +246,34 @@ const handleRemoveModelFromGroup = (groupName: string, idx: number) => {
                             :key="m"
                             class="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-zx-text font-mono"
                         >
-                            <span class="text-[10px] text-slate-400 font-sans">#{{ idx + 1 }}</span>
+                            <span class="text-[10px] text-zx-text-subtle font-sans">#{{ idx + 1 }}</span>
                             <span>{{ m }}</span>
                             <button
                                 type="button"
-                                class="cursor-pointer text-slate-400 hover:text-red-500 ml-1"
+                                class="cursor-pointer text-zx-text-subtle hover:text-zx-danger ml-1"
                                 @click="handleRemoveModelFromGroup(groupName, idx)"
                             >
                                 <X class="h-3 w-3" />
                             </button>
                         </div>
-                        <span
+                        <ZxEmptyState
                             v-if="!models.length"
-                            class="text-xs text-zx-text-subtle self-center"
-                        >
-                            暂无模型，请在下方添加
-                        </span>
+                            class="w-full"
+                            size="sm"
+                            text="暂无模型，请在下方添加"
+                        />
                     </div>
 
                     <!-- 添加模型到组 -->
                     <div class="flex items-center gap-2 pt-1 border-t border-slate-100">
-                        <input
+                        <ZXInput
                             v-model="newGroupModelInputs[groupName]"
-                            type="text"
                             :list="`available-list-${groupName}`"
                             placeholder="选择或输入 Provider/ModelName"
-                            class="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-mono text-zx-text focus:border-zx-primary focus:outline-none"
+                            rounded="xl"
+                            size="sm"
+                            input-class="font-mono"
+                            class="flex-1"
                             @keydown.enter.prevent="handleAddModelToGroup(groupName)"
                         />
                         <datalist :id="`available-list-${groupName}`">

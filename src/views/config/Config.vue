@@ -9,11 +9,12 @@ import {
     Plus,
     RefreshCw,
     Save,
-    Search,
     Server,
     Sparkles,
 } from "lucide-vue-next";
+import ZXInput from "@/components/zxcomponent/ZXInput.vue";
 import ZxButton from "@/components/zxcomponent/ZxButton.vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import { ZXMessageBox } from "@/services/ui";
 import { useAiStore } from "@/store/ai";
 import { storeToRefs } from "pinia";
@@ -26,8 +27,13 @@ import DefaultRoutesTab from "./components/DefaultRoutesTab.vue";
 import ContextSettingsTab from "./components/ContextSettingsTab.vue";
 import EngineSettingsTab from "./components/EngineSettingsTab.vue";
 import ExperimentalProtocolTab from "./components/ExperimentalProtocolTab.vue";
+import EnvConfigView from "./components/EnvConfigView.vue";
 
 const globalStore = useGlobalStore();
+const route = useRoute();
+
+// 主选项卡：大模型配置 (ai) 或 环境配置 (env)
+const activeTab = computed(() => (route.query.tab === "env" ? "env" : "ai"));
 
 // 大模型配置内部子选项卡
 type AiTabType = "providers" | "routes" | "context" | "engine" | "protocols";
@@ -60,7 +66,6 @@ watch(
     },
 );
 
-const route = useRoute();
 watch(
     () => route.query.subtab,
     (subtab) => {
@@ -206,7 +211,14 @@ onActivated(() => {
 </script>
 
 <template>
-    <div class="flex h-full w-full flex-col gap-3 sm:gap-4 overflow-y-auto select-none">
+    <!-- 环境配置页 (.env.dev) -->
+    <EnvConfigView v-if="activeTab === 'env'" />
+
+    <!-- 大模型配置页 -->
+    <div
+        v-else
+        class="config-page-root flex h-full min-h-0 w-full flex-col gap-3 sm:gap-4 overflow-hidden select-none"
+    >
         <!-- 顶部工具栏与子选项卡导航条 -->
         <div
             class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 rounded-3xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-sm shrink-0"
@@ -239,15 +251,12 @@ onActivated(() => {
                 <!-- 针对服务提供商选项卡的专有操作 -->
                 <template v-if="currentAiTab === 'providers'">
                     <!-- 搜索框 -->
-                    <div
-                        class="relative flex items-center rounded-full border border-slate-200 bg-slate-50/80 px-3 py-1 text-xs focus-within:border-zx-primary focus-within:bg-white"
-                    >
-                        <Search class="h-3.5 w-3.5 text-zx-text-subtle mr-1.5" />
-                        <input
+                    <div class="w-36 sm:w-44">
+                        <ZXInput
                             v-model="providerSearchQuery"
-                            type="text"
+                            type="search"
+                            size="sm"
                             placeholder="筛选服务商..."
-                            class="bg-transparent text-xs text-zx-text outline-none placeholder:text-zx-text-subtle w-24 sm:w-32"
                         />
                     </div>
 
@@ -293,7 +302,7 @@ onActivated(() => {
         <!-- 子页面 1：服务提供商卡片网格 -->
         <div
             v-if="currentAiTab === 'providers'"
-            class="flex-1 overflow-y-auto"
+            class="flex-1 min-h-0 overflow-y-auto px-1.5 pt-2 pb-6"
         >
             <div
                 class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4"
@@ -311,21 +320,23 @@ onActivated(() => {
                 />
 
                 <!-- 空状态提示 -->
-                <div
+                <ZxEmptyState
                     v-if="filteredProviders.length === 0"
-                    class="col-span-full flex flex-col items-center justify-center py-16 text-center"
-                >
-                    <p class="text-xs text-zx-text-muted">
-                        {{ providerSearchQuery ? '未找到匹配的服务提供商' : '暂无已配置的服务提供商，请点击右上角「添加服务商」' }}
-                    </p>
-                </div>
+                    class="col-span-full"
+                    size="md"
+                    :text="
+                        providerSearchQuery
+                            ? '未找到匹配的服务提供商'
+                            : '暂无已配置的服务提供商，请点击右上角「添加服务商」'
+                    "
+                />
             </div>
         </div>
 
         <!-- 子页面 2：任务默认路由 -->
         <div
             v-else-if="currentAiTab === 'routes'"
-            class="flex-1 overflow-y-auto"
+            class="flex-1 min-h-0 overflow-y-auto px-1.5 pt-2 pb-6"
         >
             <DefaultRoutesTab
                 :default-models="aiConfig.default_models"
@@ -337,7 +348,7 @@ onActivated(() => {
         <!-- 子页面 3：上下文设置 -->
         <div
             v-else-if="currentAiTab === 'context'"
-            class="flex-1 overflow-y-auto"
+            class="flex-1 min-h-0 overflow-y-auto px-1.5 pt-2 pb-6"
         >
             <ContextSettingsTab
                 :context-settings="aiConfig.context_settings"
@@ -348,7 +359,7 @@ onActivated(() => {
         <!-- 子页面 4：智能体引擎与底层网络 -->
         <div
             v-else-if="currentAiTab === 'engine'"
-            class="flex-1 overflow-y-auto"
+            class="flex-1 min-h-0 overflow-y-auto px-1.5 pt-2 pb-6"
         >
             <EngineSettingsTab
                 :agent-settings="aiConfig.agent_settings"
@@ -362,7 +373,7 @@ onActivated(() => {
         <!-- 子页面 5：实验性协议适配与劫持 -->
         <div
             v-else-if="currentAiTab === 'protocols'"
-            class="flex-1 overflow-y-auto"
+            class="flex-1 min-h-0 overflow-y-auto px-1.5 pt-2 pb-6"
         >
             <ExperimentalProtocolTab />
         </div>
@@ -378,3 +389,10 @@ onActivated(() => {
         />
     </div>
 </template>
+
+<style>
+/* 压住 Home 胶片带给页面根的 overflow-y:auto，滚动统一交给子选项卡内部面板 */
+.config-page-root {
+    overflow: hidden !important;
+}
+</style>
