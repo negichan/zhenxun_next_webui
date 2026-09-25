@@ -8,7 +8,7 @@
 
 import type { AxiosAdapter, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import type { MockContext, MockRoute } from './types'
-import { MOCK_MODE } from 'virtual:mock-mode'
+import { MOCK_MODE, isMockEnabled } from 'virtual:mock-mode'
 import { mockRoutes } from './index'
 
 const API_BASE = '/zhenxun/api/v1'
@@ -98,16 +98,19 @@ export const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConf
     await new Promise(resolve => setTimeout(resolve, delay))
 
     if (!matched) {
-        // 未实现 mock 的接口直接抛错，便于在控制台/通知里发现漏网之鱼
+        // 未实现 mock 的接口直接抛错，便于在控制台发现漏网之鱼；
+        // 标记 isMockError，拦截器不弹 UI 通知，避免连刷
         const message = `[Mock] 未实现的路由: ${method.toUpperCase()} ${config.url}`
         console.warn(message)
         const error = new Error(message) as Error & {
             config: InternalAxiosRequestConfig
             response?: AxiosResponse
             isAxiosError: boolean
+            isMockError?: boolean
         }
         error.config = config
         error.isAxiosError = true
+        error.isMockError = true
         error.response = {
             data: { success: false, message, code: 400, data: null },
             status: 400,
@@ -124,7 +127,7 @@ export const mockAdapter: AxiosAdapter = async (config: InternalAxiosRequestConf
         ? result
         : { success: true, message: 'ok', code: 200, data: result }
 
-    if (MOCK_MODE) {
+    if (MOCK_MODE && isMockEnabled()) {
         console.debug(
             `[Mock] ${method.toUpperCase()} ${matched.ctx.url} ->`,
             payload,

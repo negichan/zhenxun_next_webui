@@ -397,4 +397,36 @@ export const analyticsRoutes: MockRoute[] = [
                 ava_url: defaultAva,
             })),
     },
+    {
+        method: 'get',
+        url: '/analytics/word-cloud',
+        response: ({ query }) => {
+            const limit = Math.min(200, Math.max(1, Number(query.limit || 80)))
+            const pool: Array<[string, number]> = [
+                ['签到', 1280], ['抽卡', 960], ['老婆', 880], ['菜单', 760],
+                ['帮助', 720], ['金币', 680], ['好感度', 640], ['天气', 560],
+                ['点歌', 520], ['今日运势', 480], ['早安', 440], ['晚安', 420],
+                ['原神', 400], ['表情包', 380], ['翻译', 340], ['词云', 320],
+                ['涩图', 300], ['学习', 280], ['摸鱼', 260], ['干饭', 240],
+                ['内卷', 220], ['摸了', 210], ['冲鸭', 200], ['芜湖', 190],
+                ['草', 180], ['好耶', 170], ['谢谢', 160], ['再见', 150],
+                ['欢迎', 140], ['管理员', 130], ['真寻', 125], ['插件', 120],
+                ['配置', 110], ['群聊', 105], ['私聊', 100], ['表情', 95],
+                ['图片', 90], ['语音', 85], ['视频', 80], ['链接', 75],
+                ['python', 70], ['github', 65], ['lol', 60], ['anime', 55],
+                ['sleep', 50], ['code', 45], ['music', 40], ['game', 35],
+            ]
+            const words = pool
+                .slice(0, limit)
+                .map(([text, value]) => ({ text, value: Math.round(value * rand(0.7, 1.3)) }))
+                .sort((a, b) => b.value - a.value)
+            return {
+                words,
+                total: words.reduce((s, w) => s + w.value, 0),
+                sampled: rand(2000, 8000),
+                start_time: query.start_time || now(),
+                end_time: query.end_time || now(),
+            }
+        },
+    },
 ]

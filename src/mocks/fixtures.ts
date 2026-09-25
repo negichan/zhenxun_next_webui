@@ -3,7 +3,7 @@
  * 多个路由模块共用的 bot/好友/群组/插件等基础数据
  */
 
-import avatar from '@/assets/img/avatar.jpg'
+import avatar from '@/assets/img/avatar.webp'
 
 // 统一使用项目自带的默认头像，避免假外链裂图
 export const defaultAva: string = avatar

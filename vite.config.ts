@@ -10,10 +10,10 @@ import Components from "unplugin-vue-components/vite";
 import compression from "vite-plugin-compression2";
 
 // https://vite.dev/config/
-// ==================== Mock 模式开关 ====================
-// 开启后开发服务器里所有 API 请求与 WebSocket 数据均来自 src/mocks 的本地数据，
-// 无需启动真寻后端即可开发前端页面（仅 dev 生效，build 永远关闭）
-const MOCK = false;
+// ==================== Mock 模式 ====================
+// 仅 dev 暴露、不参与生产打包：
+// - serve：virtual:mock-* 指向运行时开关 + 真实 mock server，设置 → 实验性功能中切换
+// - build：恒指向空实现，src/mocks 不会进入产物
 // ===========================================================
 
 // ==================== 白屏开关 ====================
@@ -39,7 +39,7 @@ function devPageGate(): Plugin {
                     const path =
                         (req.url ?? "/").split("?")[0].replace(/\/+$/, "") ||
                         "/";
-                    const exempt = ["/login"];
+                    const exempt = ["/login", "/bot", "/ui"];
                     if (accept.includes("text/html") && !exempt.includes(path)) {
                         const cookies = Object.fromEntries(
                             String(req.headers?.cookie ?? "")
@@ -83,13 +83,13 @@ export default defineConfig(({ command }) =>({
             components: fileURLToPath(
                 new URL("./src/components", import.meta.url),
             ),
-            // Mock 开关注入载体:代码里 import { MOCK_MODE } from "virtual:mock-mode"
-            // 拿到编译期常量；import { mockAdapter } from "virtual:mock-api" 拿到
-            // mock 适配器（关闭时指向空实现，src/mocks 不会进入构建产物）
-            ...(command === "serve" && MOCK
+            // Mock 注入载体：
+            // dev  → flag-dev（运行时 localStorage 开关）+ server（真实 mock 适配器）
+            // build → flag-off + empty-adapter，src/mocks 不进产物
+            ...(command === "serve"
                 ? {
                       "virtual:mock-mode": fileURLToPath(
-                          new URL("./src/mocks/flag-on.ts", import.meta.url),
+                          new URL("./src/mocks/flag-dev.ts", import.meta.url),
                       ),
                       "virtual:mock-api": fileURLToPath(
                           new URL("./src/mocks/server.ts", import.meta.url),
@@ -160,9 +160,15 @@ export default defineConfig(({ command }) =>({
                     mangle: true,
                     codegen: true,
                 },
-                // 原 manualChunks 的分组语义原样迁移（Rolldown 已不支持 manualChunks）
+                // 原 manualChunks 的分组语义原样迁移（Rolldown 已不支持 manualChunks）。
+                // @vue/* 必须独立分组：否则会被 Rolldown 并进依赖它的 vendor_charts
+                // （Chart.js），导致所有页面 preload 时都背着图表库
                 codeSplitting: {
                     groups: [
+                        {
+                            name: "vendor_vue_core",
+                            test: /node_modules[\\/]@vue[\\/]/,
+                        },
                         {
                             name: "vendor_charts",
                             test: /node_modules[\\/](chart\.js|vue-chartjs)/,
