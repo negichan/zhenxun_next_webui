@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Blocks, RefreshCw } from "lucide-vue-next";
+import { Blocks, RotateCw } from "lucide-vue-next";
 import { usePluginStore } from "@/store/plugin.ts";
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
@@ -64,11 +64,11 @@ const stats = computed(() => {
             <!-- 扩展统计：xl 以上 -->
             <div class="hidden items-center gap-2 xl:flex">
                 <div
-                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 shadow-sm transition-all hover:scale-105"
+                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:scale-105"
                 >
                     <span
                         v-odometer="stats.inactive"
-                        class="text-sm font-black text-slate-500"
+                        class="text-sm font-black text-zx-text-muted"
                     ></span>
                     <div class="h-3 w-[1px] bg-black/30"></div>
                     <span class="text-xs whitespace-nowrap text-zx-text-muted"
@@ -76,7 +76,7 @@ const stats = computed(() => {
                     >
                 </div>
                 <div
-                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 shadow-sm transition-all hover:scale-105"
+                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:scale-105"
                 >
                     <span
                         v-odometer="stats.builtin"
@@ -92,11 +92,11 @@ const stats = computed(() => {
 
         <button
             :disabled="loading"
-            class="btn-touch cursor-pointer rounded-full border border-slate-200 bg-white p-2 shadow-sm transition-colors hover:bg-gray-200 disabled:opacity-50"
+            class="btn-touch flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all hover:scale-105 hover:bg-gray-50 disabled:opacity-50"
             title="刷新列表"
             @click="loadPlugins"
         >
-            <RefreshCw class="h-5 w-5" :class="{ 'animate-spin': loading }" />
+            <RotateCw class="h-4 w-4 text-zx-text-muted" :class="{ 'animate-spin': loading }" />
         </button>
     </div>
 </template>

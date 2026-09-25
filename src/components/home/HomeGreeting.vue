@@ -12,5 +12,5 @@ const greeting = computed(() => {
 </script>
 
 <template>
-    <h1 class="min-w-0 flex-1 truncate text-2xl font-light text-slate-500">{{ greeting }}</h1>
+    <h1 class="min-w-0 flex-1 truncate text-2xl font-light text-zx-text-muted">{{ greeting }}</h1>
 </template>

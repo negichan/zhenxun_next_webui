@@ -142,9 +142,9 @@ const chartOptions: ChartOptions<'line'> = createLineOptions({
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
                 <TrendingUp class="w-4 h-4 text-zx-primary" />
-                <span class="text-sm font-semibold text-gray-700">互动趋势</span>
+                <span class="text-sm font-semibold text-zx-text">互动趋势</span>
             </div>
-            <div v-if="trendData" class="text-xs text-gray-500 flex items-center gap-3">
+            <div v-if="trendData" class="text-xs text-zx-text-muted flex items-center gap-3">
                 <span class="flex items-center gap-1">
                     <MessageSquare class="w-3 h-3" />
                     总聊天: {{ trendData.total_chat }}
@@ -171,10 +171,13 @@ const chartOptions: ChartOptions<'line'> = createLineOptions({
             />
 
             <!-- 空状态 -->
-            <div v-else class="flex flex-col items-center justify-center h-full text-gray-400">
-                <TrendingUp class="w-10 h-10 mb-2 opacity-30" />
-                <p class="text-sm">暂无趋势数据</p>
-            </div>
+            <ZxEmptyState
+                v-else
+                :icon="TrendingUp"
+                text="暂无趋势数据"
+                size="sm"
+                class="h-full justify-center"
+            />
         </div>
     </div>
 </template>
