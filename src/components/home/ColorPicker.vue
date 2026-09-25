@@ -122,24 +122,26 @@ function handleHexInput() {
     }
 }
 
-function handleHueMouseDown(e: MouseEvent) {
+function handleHuePointerDown(e: PointerEvent) {
     isDraggingHue.value = true;
     updateHue(e);
-    window.addEventListener("mousemove", handleHueMouseMove);
-    window.addEventListener("mouseup", handleHueMouseUp);
+    window.addEventListener("pointermove", handleHuePointerMove);
+    window.addEventListener("pointerup", handleHuePointerUp);
+    window.addEventListener("pointercancel", handleHuePointerUp);
 }
 
-function handleHueMouseMove(e: MouseEvent) {
+function handleHuePointerMove(e: PointerEvent) {
     if (isDraggingHue.value) updateHue(e);
 }
 
-function handleHueMouseUp() {
+function handleHuePointerUp() {
     isDraggingHue.value = false;
-    window.removeEventListener("mousemove", handleHueMouseMove);
-    window.removeEventListener("mouseup", handleHueMouseUp);
+    window.removeEventListener("pointermove", handleHuePointerMove);
+    window.removeEventListener("pointerup", handleHuePointerUp);
+    window.removeEventListener("pointercancel", handleHuePointerUp);
 }
 
-function updateHue(e: MouseEvent) {
+function updateHue(e: PointerEvent | MouseEvent) {
     const el = hueRef.value;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -147,24 +149,26 @@ function updateHue(e: MouseEvent) {
     hue.value = Math.round((x / rect.width) * 360);
 }
 
-function handlePickerMouseDown(e: MouseEvent) {
+function handlePickerPointerDown(e: PointerEvent) {
     isDraggingPicker.value = true;
     updatePicker(e);
-    window.addEventListener("mousemove", handlePickerMouseMove);
-    window.addEventListener("mouseup", handlePickerMouseUp);
+    window.addEventListener("pointermove", handlePickerPointerMove);
+    window.addEventListener("pointerup", handlePickerPointerUp);
+    window.addEventListener("pointercancel", handlePickerPointerUp);
 }
 
-function handlePickerMouseMove(e: MouseEvent) {
+function handlePickerPointerMove(e: PointerEvent) {
     if (isDraggingPicker.value) updatePicker(e);
 }
 
-function handlePickerMouseUp() {
+function handlePickerPointerUp() {
     isDraggingPicker.value = false;
-    window.removeEventListener("mousemove", handlePickerMouseMove);
-    window.removeEventListener("mouseup", handlePickerMouseUp);
+    window.removeEventListener("pointermove", handlePickerPointerMove);
+    window.removeEventListener("pointerup", handlePickerPointerUp);
+    window.removeEventListener("pointercancel", handlePickerPointerUp);
 }
 
-function updatePicker(e: MouseEvent) {
+function updatePicker(e: PointerEvent | MouseEvent) {
     const el = pickerRef.value;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -199,7 +203,7 @@ onMounted(() => {
                     ref="hueRef"
                     class="relative max-sm:h-5 h-2.5 w-full cursor-pointer rounded-full"
                     style="background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)"
-                    @mousedown="handleHueMouseDown"
+                    @pointerdown="handleHuePointerDown"
                 >
                     <div
                         class="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md"
@@ -213,7 +217,7 @@ onMounted(() => {
                 ref="pickerRef"
                 class="relative max-sm:h-40 h-32 w-full cursor-crosshair rounded-xl"
                 :style="{ background: pickerBg }"
-                @mousedown="handlePickerMouseDown"
+                @pointerdown="handlePickerPointerDown"
             >
                 <div class="absolute inset-0 rounded-xl" style="background: linear-gradient(to right, #fff, transparent)" />
                 <div class="absolute inset-0 rounded-xl" style="background: linear-gradient(to bottom, transparent, #000)" />
@@ -229,9 +233,13 @@ onMounted(() => {
                     class="max-sm:h-8 max-sm:w-8 h-7 w-7 flex-shrink-0 rounded-full shadow-sm ring-1 ring-slate-200"
                     :style="{ background: currentColor }"
                 />
-                <input
+                <ZXInput
                     v-model="hexInput"
-                    class="flex-1 max-sm:py-2.5 max-sm:text-sm py-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-mono text-slate-700 outline-none transition-colors focus:border-slate-300"
+                    class="flex-1"
+                    rounded="lg"
+                    size="sm"
+                    input-class="font-mono"
+                    placeholder=""
                     @change="handleHexInput"
                     @keydown.enter="handleHexInput"
                 />

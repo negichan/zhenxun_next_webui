@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Bell, Bot, Settings, Palette, Ellipsis, X } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { computed, defineAsyncComponent, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useThemeStore } from "@/store/theme";
 import { useManageStore } from "@/store/manage.ts";
@@ -9,7 +9,11 @@ import { gsap } from "gsap";
 import { openBotClient } from "@/config/menu";
 import ThemeCustomizer from "./ThemeCustomizer.vue";
 import RequestCenter from "./RequestCenter.vue";
-import SettingsModal from "./SettingsModal.vue";
+// 设置弹窗懒加载：首开才拉 chunk（平时不进首屏包）；
+// 首开挂载后保持常驻，关闭退场动画由组件内部 Transition 接管
+const SettingsModal = defineAsyncComponent(
+    () => import("./SettingsModal.vue"),
+);
 
 const themeStore = useThemeStore();
 const manageStore = useManageStore();
@@ -30,6 +34,10 @@ onClickOutside(themePanelRef, () => {
 
 // 设置弹窗（桌面端与紧凑菜单共用一个状态）
 const showSettingsModal = ref(false);
+const settingsModalLoaded = ref(false);
+watch(showSettingsModal, (v) => {
+    if (v) settingsModalLoaded.value = true;
+});
 
 // 移动端 / 平板端（lg 以下）：三个按钮收纳为一个展开菜单
 const showCompactMenu = ref(false);
@@ -186,8 +194,8 @@ const openBotClientWindow = () => {
                     title="请求处理"
                     @click="toggleRequestPanel"
                 >
-                    <Bell class="h-4.5 w-4.5 transition-colors sm:h-4 sm:w-4" :class="messageCount > 0 ? 'text-orange-500 bell-notify' : 'text-slate-600 group-hover:text-orange-500'" />
-                    <span v-if="messageCount > 0" class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold leading-none text-white">{{ messageCount }}</span>
+                    <Bell class="h-4.5 w-4.5 transition-colors sm:h-4 sm:w-4" :class="messageCount > 0 ? 'text-zx-danger bell-notify' : 'text-zx-text-muted group-hover:text-zx-danger'" />
+                    <span v-if="messageCount > 0" class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white">{{ messageCount }}</span>
                 </button>
                 <RequestCenter variant="desktop" />
             </div>
@@ -198,7 +206,7 @@ const openBotClientWindow = () => {
                     title="主题选择"
                     @click="toggleThemePanel"
                 >
-                    <Palette class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4" />
+                    <Palette class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4" />
                 </button>
                 <Transition :css="false" @enter="onDropdownEnter" @leave="onDropdownLeave">
                     <div
@@ -218,7 +226,7 @@ const openBotClientWindow = () => {
                 title="Bot 端（模拟端）"
                 @click="openBotClientWindow"
             >
-                <Bot class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4" />
+                <Bot class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4" />
             </button>
 
             <button
@@ -226,7 +234,7 @@ const openBotClientWindow = () => {
                 title="设置"
                 @click="showSettingsModal = true"
             >
-                <Settings class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4" />
+                <Settings class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4" />
             </button>
         </div>
 
@@ -239,13 +247,13 @@ const openBotClientWindow = () => {
             >
                 <X
                     v-if="showCompactMenu"
-                    class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4"
+                    class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4"
                 />
                 <Ellipsis
                     v-else
-                    class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4"
+                    class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4"
                 />
-                <span v-if="messageCount > 0" class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold leading-none text-white">{{ messageCount }}</span>
+                <span v-if="messageCount > 0" class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white">{{ messageCount }}</span>
             </button>
             <Transition :css="false" @enter="onStackEnter" @leave="onStackLeave">
                 <div
@@ -274,12 +282,12 @@ const openBotClientWindow = () => {
                             @click="openRequestCenter"
                         >
                             <Bell
-                                class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4"
-                                :class="messageCount > 0 ? 'text-orange-500' : ''"
+                                class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4"
+                                :class="messageCount > 0 ? 'text-zx-danger' : ''"
                             />
                             <span
                                 v-if="messageCount > 0"
-                                class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[10px] font-bold leading-none text-white"
+                                class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white"
                             >{{ messageCount }}</span>
                         </button>
                         <button
@@ -289,7 +297,7 @@ const openBotClientWindow = () => {
                             @click="compactThemeOpen = true"
                         >
                             <Palette
-                                class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4"
+                                class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4"
                             />
                         </button>
                         <button
@@ -299,7 +307,7 @@ const openBotClientWindow = () => {
                             @click="openBotClientWindow"
                         >
                             <Bot
-                                class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4"
+                                class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4"
                             />
                         </button>
                         <button
@@ -312,7 +320,7 @@ const openBotClientWindow = () => {
                             "
                         >
                             <Settings
-                                class="h-4.5 w-4.5 text-slate-600 sm:h-4 sm:w-4"
+                                class="h-4.5 w-4.5 text-zx-text-muted sm:h-4 sm:w-4"
                             />
                         </button>
                     </template>
@@ -322,6 +330,7 @@ const openBotClientWindow = () => {
         </div>
 
         <SettingsModal
+            v-if="settingsModalLoaded"
             :visible="showSettingsModal"
             @close="showSettingsModal = false"
         />

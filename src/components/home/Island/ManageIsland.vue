@@ -117,7 +117,7 @@ onMounted(() => {
             class="group flex w-fit items-center space-x-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:scale-105"
         >
             <Shield class="h-5 w-5 text-zx-primary" />
-            <span class="text-sm font-medium whitespace-nowrap text-slate-700"
+            <span class="text-sm font-medium whitespace-nowrap text-zx-text"
                 >管理</span
             >
         </div>
@@ -128,7 +128,7 @@ onMounted(() => {
             <div class="flex items-center space-x-2">
                 <Bell ref="bellRef" class="h-5 w-5 text-zx-primary" />
                 <span
-                    class="nowrap text-xs font-medium tracking-wide text-slate-600"
+                    class="nowrap text-xs font-medium tracking-wide text-zx-text-muted"
                     >请求处理</span
                 >
             </div>

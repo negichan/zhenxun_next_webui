@@ -4,6 +4,8 @@ import { Coins, Heart, Pencil, Check, X } from 'lucide-vue-next'
 import { ZXNotification } from '@/services/ui'
 import { manageApi } from '@/utils/api-next'
 import type { FriendDetail } from '@/types/manage.types'
+import ZxInputNumber from '@/components/zxcomponent/ZxInputNumber.vue'
+import ZxEmptyState from '@/components/zxcomponent/ZxEmptyState.vue'
 
 const props = defineProps<{
     friend: FriendDetail | null
@@ -89,16 +91,17 @@ watch(() => props.friend, () => {
             <!-- 头部信息 -->
             <div class="friend-header bg-slate-50 rounded-2xl p-4">
                 <div class="flex items-center gap-4">
-                    <img
+                    <ZxAvatar
                         :src="friend.ava_url"
-                        :alt="friend.nickname"
-                        class="w-16 h-16 rounded-full object-cover shadow-lg ring-2 ring-white"
+                        :name="friend.nickname"
+                        size="xl"
+                        class="shadow-lg ring-2 ring-white"
                     />
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg font-semibold text-gray-800 truncate">
+                        <h3 class="text-lg font-semibold text-zx-text-strong truncate">
                             {{ friend.nickname }}
                         </h3>
-                        <p class="text-sm text-gray-500 font-mono">
+                        <p class="text-sm text-zx-text-muted font-mono">
                             ID: {{ friend.user_id }}
                         </p>
                     </div>
@@ -112,14 +115,14 @@ watch(() => props.friend, () => {
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <Coins class="w-4 h-4 text-zx-primary" />
-                            <span class="text-sm font-medium text-gray-600">金币</span>
+                            <span class="text-sm font-medium text-zx-text-muted">金币</span>
                         </div>
                         <button
                             v-if="editingField !== 'gold'"
                             @click="startEdit('gold')"
                             class="p-1 rounded-lg hover:bg-slate-200 transition-colors"
                         >
-                            <Pencil class="w-3.5 h-3.5 text-slate-500" />
+                            <Pencil class="w-3.5 h-3.5 text-zx-text-muted" />
                         </button>
                     </div>
 
@@ -132,13 +135,13 @@ watch(() => props.friend, () => {
 
                     <!-- 编辑模式 -->
                     <div v-else class="flex items-center gap-2">
-                        <input
-                            v-model.number="editValue"
-                            type="number"
+                        <ZxInputNumber
+                            v-model="editValue"
                             :min="0"
-                            class="w-20 px-2 py-1 text-lg font-bold text-center border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zx-primary"
-                            @keyup.enter="confirmSave"
-                            @keyup.escape="cancelEdit"
+                            size="sm"
+                            class="w-24"
+                            @keydown.enter="confirmSave"
+                            @keydown.escape="cancelEdit"
                         />
                         <div class="flex gap-1">
                             <button
@@ -164,14 +167,14 @@ watch(() => props.friend, () => {
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
                             <Heart class="w-4 h-4 text-zx-primary" />
-                            <span class="text-sm font-medium text-gray-600">好感度</span>
+                            <span class="text-sm font-medium text-zx-text-muted">好感度</span>
                         </div>
                         <button
                             v-if="editingField !== 'favorability'"
                             @click="startEdit('favorability')"
                             class="p-1 rounded-lg hover:bg-slate-200 transition-colors"
                         >
-                            <Pencil class="w-3.5 h-3.5 text-slate-500" />
+                            <Pencil class="w-3.5 h-3.5 text-zx-text-muted" />
                         </button>
                     </div>
 
@@ -184,13 +187,13 @@ watch(() => props.friend, () => {
 
                     <!-- 编辑模式 -->
                     <div v-else class="flex items-center gap-2">
-                        <input
-                            v-model.number="editValue"
-                            type="number"
+                        <ZxInputNumber
+                            v-model="editValue"
                             :min="0"
-                            class="w-20 px-2 py-1 text-lg font-bold text-center border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zx-primary"
-                            @keyup.enter="confirmSave"
-                            @keyup.escape="cancelEdit"
+                            size="sm"
+                            class="w-24"
+                            @keydown.enter="confirmSave"
+                            @keydown.escape="cancelEdit"
                         />
                         <div class="flex gap-1">
                             <button
@@ -214,25 +217,12 @@ watch(() => props.friend, () => {
         </div>
 
         <!-- 无数据状态 -->
-        <div v-else class="flex flex-col items-center justify-center py-8 text-gray-400">
-            <Coins class="w-12 h-12 mb-2 opacity-30" />
-            <p class="text-sm">暂无好友数据</p>
-        </div>
+        <ZxEmptyState v-else size="sm" text="暂无好友数据" />
     </div>
 </template>
 
 <style scoped>
 .friend-detail-info {
     min-height: 120px;
-}
-
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-input[type="number"] {
-    -moz-appearance: textfield;
 }
 </style>

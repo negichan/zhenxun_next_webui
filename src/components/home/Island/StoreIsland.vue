@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { Package } from "lucide-vue-next";
+import { Blocks, RotateCw } from "lucide-vue-next";
 import { useStoreStore } from "@/store/store.ts";
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
@@ -22,46 +22,47 @@ const stats = computed(() => {
 </script>
 
 <template>
-    <div class="flex w-full items-center justify-between space-x-2">
-        <div class="flex space-x-2 whitespace-nowrap">
-            <div
-                class="group flex w-fit items-center space-x-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:scale-105"
-            >
-                <Package class="h-5 w-5 text-blue-500" />
-                <span class="text-sm font-medium text-zx-text">插件管理</span>
-            </div>
+    <!-- w-fit：与 PluginIsland 一致，不要撑满 header -->
+    <div class="flex w-fit items-center gap-2">
+        <div
+            class="group flex w-fit items-center space-x-3 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:scale-105"
+        >
+            <Blocks class="h-5 w-5 text-blue-500" />
+            <span class="text-sm font-medium whitespace-nowrap text-zx-text">插件管理</span>
+        </div>
 
-            <!-- 统计胶囊：xl 以下（平板横屏等窄桌面）隐藏，避免挤掉头部其它元素 -->
-            <div class="hidden items-center space-x-2 xl:flex">
+        <!-- 核心统计：与 PluginIsland 同档（xl 再出全量） -->
+        <div class="flex items-center gap-2">
+            <div
+                class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition-all hover:scale-105 sm:px-4"
+            >
+                <span
+                    v-odometer="stats.total"
+                    class="text-sm font-black text-blue-500"
+                ></span>
+                <div class="h-3 w-[1px] bg-black/30"></div>
+                <span class="text-xs whitespace-nowrap text-zx-text-muted">总插件数</span>
+            </div>
+            <div
+                class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition-all hover:scale-105 sm:px-4"
+            >
+                <span
+                    v-odometer="stats.installed"
+                    class="text-sm font-black text-green-500"
+                ></span>
+                <div class="h-3 w-[1px] bg-black/30"></div>
+                <span class="text-xs whitespace-nowrap text-zx-text-muted">已安装</span>
+            </div>
+            <div class="hidden items-center gap-2 xl:flex">
                 <div
-                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 shadow-sm transition-all hover:scale-105"
-                >
-                    <span
-                        v-odometer="stats.total"
-                        class="text-sm font-black text-blue-500"
-                    ></span>
-                    <div class="h-3 w-[1px] bg-black/30"></div>
-                    <span class="text-xs text-zx-text-muted">总插件数</span>
-                </div>
-                <div
-                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 shadow-sm transition-all hover:scale-105"
-                >
-                    <span
-                        v-odometer="stats.installed"
-                        class="text-sm font-black text-green-500"
-                    ></span>
-                    <div class="h-3 w-[1px] bg-black/30"></div>
-                    <span class="text-xs text-zx-text-muted">已安装</span>
-                </div>
-                <div
-                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 shadow-sm transition-all hover:scale-105"
+                    class="group flex w-fit items-center space-x-2 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition-all hover:scale-105"
                 >
                     <span
                         v-odometer="stats.available"
                         class="text-sm font-black text-orange-500"
                     ></span>
                     <div class="h-3 w-[1px] bg-black/30"></div>
-                    <span class="text-xs text-zx-text-muted">可安装</span>
+                    <span class="text-xs whitespace-nowrap text-zx-text-muted">可安装</span>
                 </div>
             </div>
         </div>
@@ -69,23 +70,10 @@ const stats = computed(() => {
         <button
             @click="loadStoreData"
             :disabled="loading"
-            class="btn-touch rounded-full border border-slate-200 bg-white p-2 shadow-sm transition-colors hover:bg-gray-200 disabled:opacity-50"
+            class="btn-touch flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all hover:scale-105 hover:bg-gray-50 disabled:opacity-50"
             title="刷新列表"
         >
-            <svg
-                class="h-5 w-5"
-                :class="{ 'animate-spin': loading }"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-            </svg>
+            <RotateCw class="h-4 w-4 text-zx-text-muted" :class="{ 'animate-spin': loading }" />
         </button>
     </div>
 </template>

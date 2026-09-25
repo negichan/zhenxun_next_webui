@@ -21,7 +21,7 @@ const botStore = useBotStore();
         <div class="flex items-center space-x-2">
             <Bot class="h-5 w-5 text-zx-primary" />
             <span
-                class="nowrap text-xs font-medium tracking-wide text-slate-600"
+                class="nowrap text-xs font-medium tracking-wide text-zx-text-muted"
                 >Bot连接</span
             >
         </div>

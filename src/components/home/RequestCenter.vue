@@ -5,7 +5,8 @@
  * 列表随 bot 切换与 30 秒静默轮询保持更新
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { Bell, Check, EyeOff, X } from "lucide-vue-next";
+import { Check, EyeOff, X } from "lucide-vue-next";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import { storeToRefs } from "pinia";
 import { gsap } from "gsap";
 import { ZXMessageBox, ZXNotification } from "@/services/ui";
@@ -81,10 +82,6 @@ const onLeave = (el: Element, done: () => void) => {
 };
 
 const activeRequestTab = ref<"friend" | "group">("friend");
-
-const hideBrokenAvatar = (e: Event) => {
-    (e.target as HTMLImageElement).style.visibility = "hidden";
-};
 
 const handleRequest = async (
     request: FriendRequestResult | GroupRequestResult,
@@ -261,7 +258,7 @@ onBeforeUnmount(() => {
                             v-if="requestsLoading"
                             class="flex items-center justify-center py-12"
                         >
-                            <div class="text-center text-gray-400">
+                            <div class="text-center text-zx-text-subtle">
                                 <div
                                     class="mx-auto mb-2 h-8 w-8 animate-pulse rounded-full border-2 border-zx-primary border-t-transparent"
                                 />
@@ -271,26 +268,20 @@ onBeforeUnmount(() => {
 
                         <template v-else>
                             <!-- 空状态 -->
-                            <div
+                            <ZxEmptyState
                                 v-if="
                                     (activeRequestTab === 'friend' &&
                                         friendRequests.length === 0) ||
                                     (activeRequestTab === 'group' &&
                                         groupRequests.length === 0)
                                 "
-                                class="py-14 text-center"
-                            >
-                                <Bell
-                                    class="mx-auto mb-3 h-12 w-12 text-slate-200"
-                                />
-                                <p class="text-sm text-slate-400">
-                                    {{
-                                        activeRequestTab === "friend"
-                                            ? "暂无好友请求"
-                                            : "暂无群组请求"
-                                    }}
-                                </p>
-                            </div>
+                                size="md"
+                                :text="
+                                    activeRequestTab === 'friend'
+                                        ? '暂无好友请求'
+                                        : '暂无群组请求'
+                                "
+                            />
 
                             <!-- 好友请求列表 -->
                             <div
@@ -302,24 +293,20 @@ onBeforeUnmount(() => {
                                     :key="req.oid"
                                     class="group flex items-center gap-3 rounded-2xl bg-slate-50 max-sm:p-3 p-2.5 transition-colors hover:bg-slate-100"
                                 >
-                                    <div
-                                        class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zx-primary-soft text-sm font-bold text-zx-primary"
-                                    >
-                                        <img
-                                            :src="req.ava_url"
-                                            referrerpolicy="no-referrer"
-                                            class="h-full w-full object-cover"
-                                            @error="hideBrokenAvatar"
-                                        />
-                                    </div>
+                                    <ZxAvatar
+                                        :src="req.ava_url"
+                                        :name="req.nickname"
+                                        size="md"
+                                        class="!h-11 !w-11 shrink-0"
+                                    />
                                     <div class="min-w-0 flex-1">
                                         <p
-                                            class="truncate text-sm font-medium text-slate-700"
+                                            class="truncate text-sm font-medium text-zx-text"
                                         >
                                             {{ req.nickname || "未知" }}
                                         </p>
                                         <p
-                                            class="truncate text-xs text-slate-400"
+                                            class="truncate text-xs text-zx-text-subtle"
                                         >
                                             ID: {{ req.id }}
                                             <span
@@ -332,7 +319,7 @@ onBeforeUnmount(() => {
                                     </div>
                                     <div class="flex shrink-0 items-center gap-0.5 max-sm:gap-2">
                                         <button
-                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-600 transition-colors hover:bg-green-50"
+                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-600 transition-colors hover:bg-zx-success-soft"
                                             title="同意"
                                             type="button"
                                             @click="handleRequest(req, 'approve')"
@@ -340,7 +327,7 @@ onBeforeUnmount(() => {
                                             <Check class="size-4" />
                                         </button>
                                         <button
-                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-50"
+                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-red-500 transition-colors hover:bg-zx-danger-soft"
                                             title="拒绝"
                                             type="button"
                                             @click="handleRequest(req, 'refused')"
@@ -370,24 +357,20 @@ onBeforeUnmount(() => {
                                     :key="req.oid"
                                     class="group flex items-center gap-3 rounded-2xl bg-slate-50 max-sm:p-3 p-2.5 transition-colors hover:bg-slate-100"
                                 >
-                                    <div
-                                        class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zx-primary-soft text-sm font-bold text-zx-primary"
-                                    >
-                                        <img
-                                            :src="req.ava_url"
-                                            referrerpolicy="no-referrer"
-                                            class="h-full w-full object-cover"
-                                            @error="hideBrokenAvatar"
-                                        />
-                                    </div>
+                                    <ZxAvatar
+                                        :src="req.ava_url"
+                                        :name="req.nickname"
+                                        size="md"
+                                        class="!h-11 !w-11 shrink-0"
+                                    />
                                     <div class="min-w-0 flex-1">
                                         <p
-                                            class="truncate text-sm font-medium text-slate-700"
+                                            class="truncate text-sm font-medium text-zx-text"
                                         >
                                             {{ req.nickname || "未知" }}
                                         </p>
                                         <p
-                                            class="truncate text-xs text-slate-400"
+                                            class="truncate text-xs text-zx-text-subtle"
                                         >
                                             ID: {{ req.id }} · 邀请群：{{
                                                 req.invite_group
@@ -402,7 +385,7 @@ onBeforeUnmount(() => {
                                     </div>
                                     <div class="flex shrink-0 items-center gap-0.5 max-sm:gap-2">
                                         <button
-                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-600 transition-colors hover:bg-green-50"
+                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-600 transition-colors hover:bg-zx-success-soft"
                                             title="同意"
                                             type="button"
                                             @click="handleRequest(req, 'approve')"
@@ -410,7 +393,7 @@ onBeforeUnmount(() => {
                                             <Check class="size-4" />
                                         </button>
                                         <button
-                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-red-500 transition-colors hover:bg-red-50"
+                                            class="btn-touch flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-red-500 transition-colors hover:bg-zx-danger-soft"
                                             title="拒绝"
                                             type="button"
                                             @click="handleRequest(req, 'refused')"

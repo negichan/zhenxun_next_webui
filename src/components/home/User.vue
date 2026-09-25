@@ -4,9 +4,10 @@ import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useBotStore } from "@/store/bot";
 import { Check, ChevronDown } from "lucide-vue-next";
 import { useGlobalStore } from "@/store/global";
-import avatar from "@/assets/img/avatar.jpg";
+import avatar from "@/assets/img/avatar.webp";
 import { auth } from "@/utils/auth.ts";
 import { whiteScreen } from "components/zxcomponent/WhiteScreen";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 
 defineOptions({ inheritAttrs: false });
 
@@ -79,10 +80,11 @@ onBeforeUnmount(() => {
         class="relative flex h-15 min-w-0 flex-1 items-center gap-2 rounded-full border border-slate-200 bg-white p-1 pr-1.5 shadow-sm sm:w-72 sm:flex-initial sm:gap-2 sm:pr-2"
     >
         <div class="avatar h-full flex-shrink-0 cursor-pointer rounded-full">
-            <img
+            <ZxAvatar
                 :src="botStore.selectedBot?.ava_url || avatar"
-                alt=""
-                class="h-full rounded-full"
+                :name="botStore.selectedBot?.nickname"
+                size="xl"
+                class="!h-full !w-auto aspect-square"
             />
         </div>
         <div class="right flex min-w-0 flex-1 items-center gap-2">
@@ -140,10 +142,11 @@ onBeforeUnmount(() => {
                     }"
                     @click="selectBot(<string>bot.self_id)"
                 >
-                    <img
+                    <ZxAvatar
                         :src="bot.ava_url || avatar"
-                        alt=""
-                        class="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                        :name="bot.nickname"
+                        size="sm"
+                        class="flex-shrink-0"
                     />
                     <div class="min-w-0 flex-1">
                         <div
@@ -151,7 +154,7 @@ onBeforeUnmount(() => {
                         >
                             {{ bot.nickname || bot.self_id }}
                         </div>
-                        <div class="truncate text-xs text-slate-400">
+                        <div class="truncate text-xs text-zx-text-subtle">
                             {{ bot.self_id }}
                         </div>
                     </div>
@@ -161,12 +164,11 @@ onBeforeUnmount(() => {
                     />
                 </div>
 
-                <div
+                <ZxEmptyState
                     v-if="botStore.botList.length === 0"
-                    class="rounded-xl px-4 py-8 text-center"
-                >
-                    <p class="text-sm text-slate-400">暂无可用的 Bot</p>
-                </div>
+                    size="sm"
+                    text="暂无可用的 Bot"
+                />
             </div>
         </Transition>
     </Teleport>
