@@ -46,7 +46,7 @@ defineExpose({
 
 <template>
     <div
-        class="flex h-full w-full select-none overflow-hidden bg-slate-50"
+        class="flex h-full w-full select-none overflow-hidden border-r border-slate-200 bg-white"
     >
         <FileTree
             v-show="activePanel === 'explorer'"

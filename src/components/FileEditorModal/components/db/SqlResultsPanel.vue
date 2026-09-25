@@ -114,7 +114,7 @@ const run = async () => {
                 v-else-if="!sqlResult.rows.length"
                 class="flex h-full flex-col items-center justify-center gap-1 p-3 text-center"
             >
-                <p class="text-xs text-slate-600">{{ sqlResult.message }}</p>
+                <p class="text-xs text-zx-text-muted">{{ sqlResult.message }}</p>
             </div>
             <table v-else class="w-max min-w-full border-collapse text-xs">
                 <thead class="sticky top-0 z-10 bg-slate-50">
@@ -122,7 +122,7 @@ const run = async () => {
                         <th
                             v-for="col in sqlResult.columns"
                             :key="col"
-                            class="border-b border-slate-200 px-2.5 py-1.5 text-left font-semibold whitespace-nowrap text-slate-700"
+                            class="border-b border-slate-200 px-2.5 py-1.5 text-left font-semibold whitespace-nowrap text-zx-text"
                         >
                             {{ col }}
                         </th>
@@ -137,7 +137,7 @@ const run = async () => {
                         <td
                             v-for="col in sqlResult.columns"
                             :key="col"
-                            class="border-b border-slate-100 px-2.5 py-1 font-mono break-all whitespace-pre-wrap text-slate-700 align-top"
+                            class="border-b border-slate-100 px-2.5 py-1 font-mono break-all whitespace-pre-wrap text-zx-text align-top"
                         >
                             <span
                                 v-if="row[col] === null || row[col] === undefined"

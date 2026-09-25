@@ -17,8 +17,7 @@ import {
     SquareSplitVertical,
     X,
 } from "lucide-vue-next";
-import { ZXDropdown } from "@/components/zxcomponent/ZXDropdown";
-import type { ZXDropdownOption } from "@/components/zxcomponent/ZXDropdown";
+import { ZXSelect, type ZXSelectOption } from "@/components/zxcomponent/ZXSelect";
 import { getWorkbenchTabIcon } from "../fileIcons";
 import type { Workbench } from "../useWorkbench";
 import type { EditorGroupId, EditorTab } from "../types";
@@ -74,7 +73,7 @@ const isMarkdownText = computed(() => {
     );
 });
 
-const moreMenu = computed<ZXDropdownOption[]>(() => [
+const moreMenu = computed<ZXSelectOption[]>(() => [
     {
         label: "向右拆分编辑器",
         value: "split-right",
@@ -371,7 +370,7 @@ watch(currentDraggingTab, (tab) => {
 <template>
     <div
         v-if="displayTabs.length > 0"
-        class="editor-tab-bar flex flex-shrink-0 select-none flex-col bg-slate-100/70"
+        class="editor-tab-bar flex flex-shrink-0 select-none flex-col border-b border-slate-200 bg-white"
     >
         <div class="flex h-8 min-w-0 items-stretch">
             <!-- 标签滚动区 -->
@@ -412,7 +411,7 @@ watch(currentDraggingTab, (tab) => {
                         :class="[
                             currentActiveTabId === tab.id
                                 ? 'bg-white font-medium text-zx-primary'
-                                : 'text-zx-text-muted hover:bg-slate-200/40 hover:text-zx-text-strong',
+                                : 'text-zx-text-muted hover:bg-slate-100 hover:text-zx-text-strong',
                             draggedIndex === index ? 'opacity-35' : '',
                         ]"
                         :title="tab.path"
@@ -657,18 +656,18 @@ watch(currentDraggingTab, (tab) => {
                     </button>
                 </div>
 
-                <ZXDropdown
+                <ZXSelect
                     :model-value="'__none'"
                     placeholder="更多操作"
                     :options="moreMenu"
                     compact
-                    trigger-class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-zx-text-muted transition-colors hover:bg-slate-200/80 hover:text-zx-text"
+                    trigger-class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-zx-text-muted transition-colors hover:bg-zx-primary-soft hover:text-zx-primary"
                     @update:model-value="onMore"
                 >
                     <template #trigger>
                         <Ellipsis class="h-3.5 w-3.5" />
                     </template>
-                </ZXDropdown>
+                </ZXSelect>
             </div>
         </div>
 

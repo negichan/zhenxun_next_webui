@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 
         <!-- 标签栏：与底部面板同一套 -->
         <div
-            class="flex h-8 flex-shrink-0 items-stretch border-b border-slate-200 bg-slate-50/80 select-none"
+            class="flex h-8 flex-shrink-0 items-stretch border-b border-slate-200 bg-white select-none"
         >
             <div class="flex min-w-0 flex-1 items-stretch overflow-x-auto">
                 <button
@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
             <div class="flex items-center gap-0.5 pr-1">
                 <button
                     type="button"
-                    class="btn-touch flex h-6 w-6 cursor-pointer items-center justify-center rounded text-zx-text-subtle transition-colors hover:bg-slate-200/80 hover:text-zx-text"
+                    class="btn-touch flex h-6 w-6 cursor-pointer items-center justify-center rounded text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text"
                     title="关闭面板"
                     @click="emit('close')"
                 >

@@ -125,7 +125,7 @@ const run = async () => {
         >
             <button
                 type="button"
-                class="btn-touch flex h-7 items-center gap-1 rounded-md px-2 text-xs text-slate-600 hover:bg-slate-100 hover:text-zx-primary"
+                class="btn-touch flex h-7 items-center gap-1 rounded-md px-2 text-xs text-zx-text-muted hover:bg-slate-100 hover:text-zx-primary"
                 title="Prettify SQL"
                 @click="prettify"
             >
@@ -134,7 +134,7 @@ const run = async () => {
             </button>
             <button
                 type="button"
-                class="btn-touch flex h-7 items-center gap-1 rounded-md px-2 text-xs text-slate-600 hover:bg-slate-100 hover:text-zx-primary"
+                class="btn-touch flex h-7 items-center gap-1 rounded-md px-2 text-xs text-zx-text-muted hover:bg-slate-100 hover:text-zx-primary"
                 @click="saveSnippet"
             >
                 <Save class="h-3.5 w-3.5" />
@@ -142,7 +142,7 @@ const run = async () => {
             </button>
             <button
                 type="button"
-                class="btn-touch flex h-7 items-center gap-1 rounded-md px-2 text-xs text-slate-600 hover:bg-slate-100"
+                class="btn-touch flex h-7 items-center gap-1 rounded-md px-2 text-xs text-zx-text-muted hover:bg-slate-100"
                 @click="openSqlLog"
             >
                 <Clock class="h-3.5 w-3.5" />
@@ -165,7 +165,7 @@ const run = async () => {
         <!-- 编辑器 -->
         <textarea
             v-model="sql"
-            class="min-h-24 w-full flex-1 resize-none border-b border-slate-200 bg-slate-50/40 px-3 py-2 font-mono text-xs leading-5 text-slate-800 outline-none focus:bg-white placeholder:text-zx-text-subtle"
+            class="min-h-24 w-full flex-1 resize-none border-b border-slate-200 bg-slate-50/40 px-3 py-2 font-mono text-xs leading-5 text-zx-text-strong outline-none focus:bg-white placeholder:text-zx-text-subtle"
             placeholder="-- Write SQL here"
             spellcheck="false"
             @keydown.meta.enter.prevent="run"
@@ -201,7 +201,7 @@ const run = async () => {
                 Chart
             </button>
             <div class="flex-1"></div>
-            <span class="tabular-nums text-xs text-slate-500">
+            <span class="tabular-nums text-xs text-zx-text-muted">
                 {{ result?.rows.length ?? 0 }} rows
             </span>
         </div>
@@ -217,7 +217,7 @@ const run = async () => {
                 v-else-if="message && !result"
                 class="flex h-full flex-col items-center justify-center gap-1 px-4 text-center"
             >
-                <p class="text-xs text-slate-600">{{ message }}</p>
+                <p class="text-xs text-zx-text-muted">{{ message }}</p>
             </div>
             <div
                 v-else-if="!result"
@@ -232,7 +232,7 @@ const run = async () => {
                             <th
                                 v-for="col in result.columns"
                                 :key="col"
-                                class="border-b border-slate-200 px-2.5 py-1.5 text-left font-semibold whitespace-nowrap text-slate-700"
+                                class="border-b border-slate-200 px-2.5 py-1.5 text-left font-semibold whitespace-nowrap text-zx-text"
                             >
                                 {{ col }}
                             </th>
@@ -247,7 +247,7 @@ const run = async () => {
                             <td
                                 v-for="col in result.columns"
                                 :key="col"
-                                class="border-b border-slate-100 px-2.5 py-1 font-mono break-all whitespace-pre-wrap text-slate-700 align-top"
+                                class="border-b border-slate-100 px-2.5 py-1 font-mono break-all whitespace-pre-wrap text-zx-text align-top"
                             >
                                 <span
                                     v-if="row[col] === null || row[col] === undefined"
