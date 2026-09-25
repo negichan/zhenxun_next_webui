@@ -1,5 +1,5 @@
 /**
- * 独立调试客户端的精简 API 客户端
+ * OneBot 模拟端的精简 API 客户端
  *
  * 从主站 src/utils/api-next/client.ts 精简移植：
  * - 后端地址同样存放在 localStorage 的 url / port（与主站语义一致）
@@ -7,7 +7,7 @@
  * - 401 时不做路由跳转，而是回调由 App 注册的处理函数切回登录页
  *
  * 登录态与主站共用 localStorage 的同一个 key（'token'），
- * 主站登录后调试窗口天然免登录。
+ * 主站登录后模拟端窗口天然免登录。
  */
 import axios from "axios";
 import type {

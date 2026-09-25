@@ -3,7 +3,7 @@
  * 按会话 key（bot 私聊 / group:xxx）分桶存取，刷新页面后恢复
  */
 
-const DB_NAME = "zhenxun-debug-chat";
+const DB_NAME = "zhenxun-onebot-chat";
 const DB_VERSION = 1;
 const STORE_NAME = "bubbles";
 /** 每个会话最多保留的条数 */

@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { mainApi } from "@/utils/api-next";
 import { ZXNotification } from "@/services/ui";
-import defaultAva from "@/assets/img/avatar.jpg";
+import defaultAva from "@/assets/img/avatar.webp";
 import type { BotInfo } from "@/types/api-next.types";
 
 /**

@@ -4,7 +4,7 @@
 
 import { getWsBaseUrl, getWsTokenQuery } from './client'
 import { startMockPush, type MockWsHandle } from '@/mocks/ws'
-import { MOCK_MODE } from 'virtual:mock-mode'
+import { MOCK_MODE, isMockEnabled } from 'virtual:mock-mode'
 
 let ws: WebSocket | null = null
 let reconnectTimer: number | null = null
@@ -32,7 +32,7 @@ function emitMockStatus() {
  */
 export function connectStatusWebSocket(): void {
     // Mock 模式:定时推送假系统状态，不建立真实连接
-    if (MOCK_MODE) {
+    if (MOCK_MODE && isMockEnabled()) {
         if (mockHandle) return
         mockHandle = startMockPush(
             open => stateChangeHandlers.forEach(handler => handler(open)),

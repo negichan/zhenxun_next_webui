@@ -536,6 +536,21 @@ export interface MessageHeatmap {
     total: number
 }
 
+/** 词云词条 */
+export interface WordCloudItem {
+    text: string
+    value: number
+}
+
+/** 区间消息词云 */
+export interface WordCloudData {
+    words: WordCloudItem[]
+    total: number
+    sampled: number
+    start_time: string
+    end_time: string
+}
+
 /**
  * 详细统计数据（带时间范围）
  */

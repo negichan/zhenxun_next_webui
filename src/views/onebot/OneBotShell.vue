@@ -8,14 +8,14 @@
  */
 import { onMounted, ref } from "vue";
 import { AppWindow, Loader2 } from "lucide-vue-next";
-import LoginView from "@/debug/LoginView.vue";
-import DebugPage from "@/debug/DebugPage.vue";
+import LoginView from "@/onebot/LoginView.vue";
+import OneBotPage from "@/onebot/OneBotPage.vue";
 import {
     authApi,
     getToken,
     setUnauthorizedHandler,
     updateApiBaseUrl,
-} from "@/debug/api";
+} from "@/onebot/api";
 
 type Phase = "checking" | "login" | "ready";
 
@@ -66,7 +66,7 @@ onMounted(async () => {
 <template>
     <div class="h-dvh w-full">
         <LoginView v-if="phase === 'login'" @success="phase = 'ready'" />
-        <DebugPage v-else-if="phase === 'ready'" />
+        <OneBotPage v-else-if="phase === 'ready'" />
         <div
             v-else
             class="flex h-full w-full items-center justify-center text-zx-primary"
@@ -77,7 +77,7 @@ onMounted(async () => {
         <!-- 弹窗转标签页 -->
         <button
             v-if="canReturnToTab"
-            class="btn-touch fixed right-4 bottom-4 z-50 flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3.5 py-2 text-xs font-semibold text-slate-500 shadow-sm backdrop-blur-sm transition-colors hover:border-zx-primary hover:text-zx-primary"
+            class="btn-touch fixed right-4 bottom-4 z-50 flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3.5 py-2 text-xs font-semibold text-zx-text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-zx-primary hover:text-zx-primary"
             type="button"
             title="转为普通浏览器标签页"
             @click="returnToTab"

@@ -11,14 +11,17 @@ import {
     Bot,
     ChartBar,
     Cpu,
+    FileCode,
     FlaskConical,
     HardDrive,
     LayoutPanelLeft,
     MessageSquareMore,
     Package,
+    PieChart,
     Settings,
     Sparkles,
     BrainCircuit,
+    SlidersHorizontal,
     Terminal,
 } from "lucide-vue-next";
 
@@ -31,7 +34,7 @@ export interface MenuItem {
     icon?: Component;
     /** 路由路径 */
     path?: string;
-    /** 外部链接：点击时新窗口打开而不走路由（如独立调试客户端） */
+    /** 外部链接：点击时新窗口打开而不走路由（如 OneBot 模拟端） */
     external?: boolean;
     /** 以命名 popup 独立窗口打开（无标签栏，应用窗口感），值为窗口名 */
     externalWindow?: string;
@@ -144,56 +147,74 @@ export const mainMenus = reactive<MenuItem[]>([
                 icon: BrainCircuit,
                 path: "/config?tab=ai&subKey=config-ai",
             },
+            {
+                name: "环境配置",
+                key: "config-env",
+                icon: SlidersHorizontal,
+                path: "/config?tab=env&subKey=config-env",
+            },
         ],
     },
     {
-        name: "数据统计",
-        key: "analytics",
+        name: "统计",
+        key: "stats",
         icon: ChartBar,
-        path: "/analytics",
-    },
-    {
-        name: "扩展",
-        key: "extensions",
-        icon: FlaskConical,
         children: [
             {
-                name: "扩展实验室",
-                key: "ext-test",
-                icon: Sparkles,
-                path: "/ext/test?subKey=ext-test",
-            },
-            {
-                name: "脚本工作台",
-                key: "ext-scripts",
-                icon: Terminal,
-                path: "/ext/test?subKey=ext-scripts",
-            },
-            {
-                name: "模型测试场",
-                key: "ext-model",
-                icon: Bot,
-                path: "/ext/test?subKey=ext-model",
-            },
-            {
-                name: "算力与芯片",
-                key: "ext-compute",
-                icon: Cpu,
-                path: "/ext/test?subKey=ext-compute",
-            },
-            {
-                name: "网络与探针",
-                key: "ext-network",
-                icon: Activity,
-                path: "/ext/test?subKey=ext-network",
-            },
-            {
-                name: "自定义工具",
-                key: "ext-custom",
-                path: "/ext/test?subKey=ext-custom",
+                name: "数据统计",
+                key: "analytics",
+                icon: PieChart,
+                path: "/analytics?subKey=analytics",
             },
         ],
     },
+    // 扩展菜单仅在开发环境展示，生产打包时完全剔除
+    ...(import.meta.env.DEV
+        ? [
+              {
+                  name: "扩展",
+                  key: "extensions",
+                  icon: FlaskConical,
+                  children: [
+                      {
+                          name: "扩展实验室",
+                          key: "ext-test",
+                          icon: Sparkles,
+                          path: "/ext/test?subKey=ext-test",
+                      },
+                      {
+                          name: "脚本工作台",
+                          key: "ext-scripts",
+                          icon: Terminal,
+                          path: "/ext/test?subKey=ext-scripts",
+                      },
+                      {
+                          name: "模型测试场",
+                          key: "ext-model",
+                          icon: Bot,
+                          path: "/ext/test?subKey=ext-model",
+                      },
+                      {
+                          name: "算力与芯片",
+                          key: "ext-compute",
+                          icon: Cpu,
+                          path: "/ext/test?subKey=ext-compute",
+                      },
+                      {
+                          name: "网络与探针",
+                          key: "ext-network",
+                          icon: Activity,
+                          path: "/ext/test?subKey=ext-network",
+                      },
+                      {
+                          name: "自定义工具",
+                          key: "ext-custom",
+                          path: "/ext/test?subKey=ext-custom",
+                      },
+                  ],
+              },
+          ]
+        : []),
 ]);
 
 /**

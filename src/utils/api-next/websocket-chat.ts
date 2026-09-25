@@ -6,7 +6,7 @@ import type { ChatMessage } from '@/types/api-next.types'
 import { getWsBaseUrl, getWsTokenQuery } from './client'
 import { startMockPush, type MockWsHandle } from '@/mocks/ws'
 import { defaultAva } from '@/mocks/fixtures'
-import { MOCK_MODE } from 'virtual:mock-mode'
+import { MOCK_MODE, isMockEnabled } from 'virtual:mock-mode'
 
 let ws: WebSocket | null = null
 let reconnectTimer: number | null = null
@@ -62,7 +62,7 @@ function emitMockChatMessage(): ChatMessage {
  */
 export function connectChatWebSocket(): void {
     // Mock 模式:定时推送假聊天消息，不建立真实连接
-    if (MOCK_MODE) {
+    if (MOCK_MODE && isMockEnabled()) {
         if (mockHandle) return
         mockHandle = startMockPush(
             open => stateChangeHandlers.forEach(handler => handler(open)),
@@ -213,7 +213,7 @@ export function sendMessage(
 ): Promise<void> {
     return new Promise((resolve, reject) => {
         // Mock 模式:没有真实连接，发送直接视为成功
-        if (MOCK_MODE) {
+        if (MOCK_MODE && isMockEnabled()) {
             console.debug('[Mock] sendMessage:', botOrMessage, groupId, userId, message)
             resolve()
             return
@@ -265,7 +265,7 @@ export function sendForwardMessage(
     }>
 ): Promise<void> {
     return new Promise((resolve, reject) => {
-        if (MOCK_MODE) {
+        if (MOCK_MODE && isMockEnabled()) {
             console.debug('[Mock] sendForwardMessage:', bot, groupId, userId, nodes)
             resolve()
             return
@@ -303,7 +303,7 @@ export function sendSegmentsMessage(
     segments: Array<{ type: string; content: string }>
 ): Promise<void> {
     return new Promise((resolve, reject) => {
-        if (MOCK_MODE) {
+        if (MOCK_MODE && isMockEnabled()) {
             console.debug('[Mock] sendSegmentsMessage:', bot, groupId, userId, segments)
             resolve()
             return
