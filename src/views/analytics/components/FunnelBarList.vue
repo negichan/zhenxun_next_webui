@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
 import type { RankListItem } from "./RankList.vue";
 
 const props = withDefaults(
@@ -59,12 +60,11 @@ const rows = computed(() => {
             </div>
         </div>
 
-        <div
+        <ZxEmptyState
             v-else-if="rows.length === 0"
-            class="flex items-center justify-center py-10 text-xs text-zx-text-subtle"
-        >
-            {{ emptyText }}
-        </div>
+            size="sm"
+            :text="emptyText"
+        />
 
         <ul
             v-else
@@ -75,18 +75,11 @@ const rows = computed(() => {
                 <div class="mb-1.5 flex items-center gap-2.5">
                     <!-- 头像（仅 showAvatar） -->
                     <div v-if="showAvatar" class="relative flex-shrink-0">
-                        <img
-                            v-if="row.avatar"
+                        <ZxAvatar
                             :src="row.avatar"
-                            :alt="row.name"
-                            class="h-8 w-8 rounded-full object-cover"
+                            :name="row.name"
+                            size="sm"
                         />
-                        <div
-                            v-else
-                            class="flex h-8 w-8 items-center justify-center rounded-full bg-zx-primary text-xs font-semibold text-[color:var(--zx-color-on-primary)]"
-                        >
-                            {{ row.name.slice(0, 1) }}
-                        </div>
                     </div>
 
                     <div class="min-w-0 flex-1">
@@ -134,41 +127,9 @@ const rows = computed(() => {
 </template>
 
 <style scoped>
+/* 始终预留滚动条槽位，出现时不引起宽度跳动（外观走全局滚动条） */
 .scroll-area {
-    scrollbar-width: thin;
-    scrollbar-color: var(--zx-color-border, #e2e8f0) transparent;
-    /* 始终预留滚动条槽位，出现时不引起宽度跳动 */
     scrollbar-gutter: stable;
-}
-
-.scroll-area::-webkit-scrollbar {
-    width: 6px;
-}
-
-/* 去掉上下箭头按钮 */
-.scroll-area::-webkit-scrollbar-button:single-button {
-    display: none;
-    height: 0;
-    width: 0;
-}
-
-.scroll-area::-webkit-scrollbar-button:vertical:decrement,
-.scroll-area::-webkit-scrollbar-button:vertical:increment,
-.scroll-area::-webkit-scrollbar-button:horizontal:decrement,
-.scroll-area::-webkit-scrollbar-button:horizontal:increment {
-    display: none;
-    background: transparent;
-    height: 0;
-    width: 0;
-}
-
-.scroll-area::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.scroll-area::-webkit-scrollbar-thumb {
-    background: var(--zx-color-border, #e2e8f0);
-    border-radius: 999px;
 }
 
 @media (prefers-reduced-motion: reduce) {

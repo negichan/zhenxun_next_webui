@@ -15,7 +15,16 @@ import {
     Title,
     Tooltip,
 } from "chart.js";
-import { RefreshCw, TrendingDown, TrendingUp } from "lucide-vue-next";
+import {
+    Activity,
+    Flame,
+    MessageSquare,
+    Minus,
+    RefreshCw,
+    TrendingDown,
+    TrendingUp,
+    Zap,
+} from "lucide-vue-next";
 import { storeToRefs } from "pinia";
 import { analyticsApi, mainApi } from "@/utils/api-next";
 import { ZXNotification } from "@/services/ui";
@@ -34,8 +43,11 @@ import type {
 } from "@/types/api-next.types";
 import { createBarOptions, getChartColors } from "@/utils/chart-theme";
 import ZxButton from "@/components/zxcomponent/ZxButton.vue";
+import StatisticsCard from "@/views/dashboard/StatisticsCard.vue";
 import RankList, { type RankListItem } from "./components/RankList.vue";
 import DetailStatsTable from "./components/DetailStatsTable.vue";
+import EconomyRankCard from "./components/EconomyRankCard.vue";
+import WordCloudCard from "./components/WordCloudCard.vue";
 import ActivityHeatmap from "./components/ActivityHeatmap.vue";
 import FunnelBarList from "./components/FunnelBarList.vue";
 
@@ -167,6 +179,7 @@ const isRankLoading = ref(false);
 const isDetailLoading = ref(false);
 const isEconomyLoading = ref(false);
 const isHeatmapLoading = ref(false);
+const isWordCloudLoading = ref(false);
 
 const isRefreshing = computed(
     () =>
@@ -175,7 +188,8 @@ const isRefreshing = computed(
         isRankLoading.value ||
         isDetailLoading.value ||
         isEconomyLoading.value ||
-        isHeatmapLoading.value,
+        isHeatmapLoading.value ||
+        isWordCloudLoading.value,
 );
 
 // ==================== 数据 ====================
@@ -183,6 +197,7 @@ const overview = ref<AnalyticsOverview | null>(null);
 const trendData = ref<TrendData | null>(null);
 const prevTrendData = ref<TrendData | null>(null);
 const heatmap = ref<MessageHeatmap | null>(null);
+const wordCloudWords = ref<import("@/types/api-next.types").WordCloudItem[]>([]);
 const groupStats = ref<GroupStatistics[]>([]);
 const friendStats = ref<FriendStatistics[]>([]);
 const activeGroups = ref<ActiveGroup[]>([]);
@@ -204,7 +219,7 @@ const toggleSeries = (series: "msg" | "call") => {
     }
 };
 
-// ==================== KPI（参考图3：标签 + 环比 + 大数字 + 对比说明） ====================
+// ==================== KPI：与首页 Dashboard 统计卡同款 ====================
 const kpiCards = computed(() => {
     const o = overview.value;
     const trend = trendData.value;
@@ -222,51 +237,61 @@ const kpiCards = computed(() => {
             ? (callCount / messageCount) * 100
             : null;
 
-    const format = (v: number | null) =>
-        v === null ? "—" : v.toLocaleString();
-
     const pct = (curr: number | null, prev: number | null) => {
         if (curr === null || prev === null || !prev) return null;
         return ((curr - prev) / prev) * 100;
     };
 
-    const msgDelta = o
-        ? pct(o.message_count, o.prev_message_count)
-        : null;
+    const msgDelta = o ? pct(o.message_count, o.prev_message_count) : null;
     const callDelta = o
         ? pct(o.plugin_call_count, o.prev_plugin_call_count)
         : null;
 
+    const toTrend = (d: number | null): "up" | "down" | "stable" => {
+        if (d === null) return "stable";
+        return d >= 0 ? "up" : "down";
+    };
+
     return [
         {
             key: "msg",
-            label: "区间消息",
-            value: format(messageCount),
-            delta: msgDelta,
-            hint: o
-                ? `${o.active_group_count} 活跃群 · ${o.active_user_count} 活跃用户`
-                : "跟随所选时间范围",
+            title: "区间消息",
+            value: messageCount ?? 0,
+            icon: MessageSquare,
+            colorClass: "text-sky-500",
+            change: msgDelta,
+            trend: toTrend(msgDelta),
+            showPercent: false,
         },
         {
             key: "call",
-            label: "区间调用",
-            value: format(callCount),
-            delta: callDelta,
-            hint: "插件被触发次数",
+            title: "区间调用",
+            value: callCount ?? 0,
+            icon: Zap,
+            colorClass: "text-amber-500",
+            change: callDelta,
+            trend: toTrend(callDelta),
+            showPercent: false,
         },
         {
             key: "avg",
-            label: "日均消息",
-            value: format(avgDaily),
-            delta: null,
-            hint: o?.peak_date ? `峰值日 ${o.peak_date}` : "按数据点均摊",
+            title: "日均消息",
+            value: avgDaily ?? 0,
+            icon: Activity,
+            colorClass: "text-emerald-500",
+            change: null,
+            trend: "stable" as const,
+            showPercent: false,
         },
         {
             key: "rate",
-            label: "调用率",
-            value: callRate === null ? "—" : `${callRate.toFixed(1)}%`,
-            delta: null,
-            hint: "调用 / 消息",
+            title: "调用率",
+            value: callRate === null ? 0 : Number(callRate.toFixed(1)),
+            icon: Flame,
+            colorClass: "text-violet-500",
+            change: null,
+            trend: "stable" as const,
+            showPercent: true,
         },
     ];
 });
@@ -495,6 +520,24 @@ const loadHeatmap = async () => {
     }
 };
 
+const loadWordCloud = async () => {
+    try {
+        isWordCloudLoading.value = true;
+        const res = await analyticsApi.getWordCloud({
+            start_time: startTime.value,
+            end_time: endTime.value,
+            limit: 80,
+        });
+        if (res?.success && res?.data) {
+            wordCloudWords.value = res.data.words ?? [];
+        }
+    } catch (error) {
+        console.error("加载词云失败:", error);
+    } finally {
+        isWordCloudLoading.value = false;
+    }
+};
+
 const loadDetailStatistics = async () => {
     try {
         isDetailLoading.value = true;
@@ -569,6 +612,7 @@ const refreshAll = async () => {
         loadHeatmap(),
         loadDetailStatistics(),
         loadRankData(),
+        loadWordCloud(),
     ]);
 };
 
@@ -592,64 +636,34 @@ onActivated(() => {
 </script>
 
 <template>
-    <div class="flex h-full w-full flex-col gap-3 overflow-y-auto sm:gap-4">
-        <!-- 工具栏 -->
+    <!-- 根容器锁高度，滚动交给内部面板（对齐 Config 页，避免被 Home 胶片带裁掉） -->
+    <div class="analytics-page-root flex h-full min-h-0 w-full flex-col overflow-hidden">
         <div
-            v-if="!globalStore.isDesktopMode || showCustomRange"
-            class="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
+            class="analytics-scroll flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain pb-6 sm:gap-4"
         >
+        <!-- 页头：标题 + 范围 + 刷新；窄屏/自定义时补充控件 -->
+        <div class="shrink-0 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <div
                 class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
             >
-                <div
-                    v-if="!globalStore.isDesktopMode"
-                    class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
-                >
-                    <ZxSegmented
-                        :model-value="selectedQuickRange"
-                        :options="quickTimeRanges"
-                        size="sm"
-                        @update:model-value="handleQuickRange"
-                    />
-                    <ZxSegmented
-                        v-model="granularity"
-                        :options="granularityOptions"
-                        size="sm"
-                        @change="handleGranularity"
-                    />
+                <div class="min-w-0">
+                    <h1 class="text-base font-bold text-zx-text-strong sm:text-lg">
+                        数据统计
+                    </h1>
+                    <p class="mt-0.5 text-xs text-zx-text-subtle">
+                        消息 · 插件调用 · 活跃全景
+                    </p>
                 </div>
 
-                <div
-                    v-if="showCustomRange"
-                    class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
-                >
-                    <label class="flex items-center gap-2 text-sm text-zx-text-muted">
-                        起始
-                        <input
-                            v-model="startTimeLocal"
-                            type="datetime-local"
-                            step="1"
-                            class="w-[190px] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-zx-text transition-colors focus:bg-white focus:outline-none"
-                        />
-                    </label>
-                    <label class="flex items-center gap-2 text-sm text-zx-text-muted">
-                        结束
-                        <input
-                            v-model="endTimeLocal"
-                            type="datetime-local"
-                            step="1"
-                            class="w-[190px] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-zx-text transition-colors focus:bg-white focus:outline-none"
-                        />
-                    </label>
-                    <ZxButton size="sm" @click="applyCustomRange">应用</ZxButton>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <span v-if="rangeLabel" class="text-xs text-zx-text-subtle">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span
+                        v-if="rangeLabel"
+                        class="max-w-full truncate rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs tabular-nums text-zx-text-muted"
+                    >
                         {{ rangeLabel }}
                     </span>
                     <ZxButton
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         :disabled="isRefreshing"
                         @click="refreshManual"
@@ -662,30 +676,217 @@ onActivated(() => {
                     </ZxButton>
                 </div>
             </div>
-        </div>
 
-        <div v-else class="flex items-center justify-end gap-3 px-1">
-            <span v-if="rangeLabel" class="text-xs text-zx-text-subtle">
-                {{ rangeLabel }}
-            </span>
-            <ZxButton
-                variant="ghost"
-                size="sm"
-                :disabled="isRefreshing"
-                @click="refreshManual"
+            <div
+                v-if="!globalStore.isDesktopMode || showCustomRange"
+                class="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:gap-3"
             >
-                <RefreshCw
-                    class="h-4 w-4"
-                    :class="isRefreshing ? 'animate-spin' : ''"
-                />
-                刷新
-            </ZxButton>
+                <div
+                    v-if="!globalStore.isDesktopMode"
+                    class="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+                >
+                    <div class="min-w-0 overflow-x-auto pb-0.5">
+                        <ZxSegmented
+                            :model-value="selectedQuickRange"
+                            :options="quickTimeRanges"
+                            size="sm"
+                            @update:model-value="handleQuickRange"
+                        />
+                    </div>
+                    <div class="min-w-0 overflow-x-auto pb-0.5">
+                        <ZxSegmented
+                            v-model="granularity"
+                            :options="granularityOptions"
+                            size="sm"
+                            @change="handleGranularity"
+                        />
+                    </div>
+                </div>
+
+                <div
+                    v-if="showCustomRange"
+                    class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+                >
+                    <label
+                        class="flex flex-col gap-1 text-xs text-zx-text-muted sm:flex-row sm:items-center sm:gap-2 sm:text-sm"
+                    >
+                        起始
+                        <input
+                            v-model="startTimeLocal"
+                            type="datetime-local"
+                            step="1"
+                            class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-zx-text transition-colors focus:bg-white focus:outline-none sm:w-[190px]"
+                        />
+                    </label>
+                    <label
+                        class="flex flex-col gap-1 text-xs text-zx-text-muted sm:flex-row sm:items-center sm:gap-2 sm:text-sm"
+                    >
+                        结束
+                        <input
+                            v-model="endTimeLocal"
+                            type="datetime-local"
+                            step="1"
+                            class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-zx-text transition-colors focus:bg-white focus:outline-none sm:w-[190px]"
+                        />
+                    </label>
+                    <ZxButton size="sm" @click="applyCustomRange">应用</ZxButton>
+                </div>
+            </div>
         </div>
 
-        <!-- 顶部：榜单 ×2 + 右侧竖排 KPI，填满高度 -->
+        <!-- KPI：首页同款统计卡 -->
+        <div class="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+            <StatisticsCard
+                v-for="card in kpiCards"
+                :key="card.key"
+                :title="card.title"
+                :value="card.value"
+                :icon="card.icon"
+                :icon-color-class="card.colorClass"
+                :change="card.change"
+                :trend-icon="
+                    card.trend === 'up'
+                        ? TrendingUp
+                        : card.trend === 'down'
+                          ? TrendingDown
+                          : Minus
+                "
+                :trend-color-class="
+                    card.trend === 'up'
+                        ? 'text-green-500'
+                        : card.trend === 'down'
+                          ? 'text-red-500'
+                          : 'text-zx-text-subtle'
+                "
+                :show-percent="card.showPercent"
+                :loading="
+                    (isOverviewLoading && !overview) ||
+                    (isTrendLoading && !trendData)
+                "
+            />
+        </div>
+
+        <!-- 左：热力图；右：趋势（窄屏纵排） -->
         <div
-            class="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_minmax(200px,240px)]"
+            class="grid shrink-0 grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-[minmax(280px,auto)_minmax(0,1fr)]"
         >
+            <div
+                class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+            >
+                <div class="mb-1">
+                    <h3
+                        class="text-sm font-semibold text-zx-text-strong sm:text-base"
+                    >
+                        消息活跃时段
+                    </h3>
+                </div>
+                <ActivityHeatmap :data="heatmap" :loading="isHeatmapLoading" />
+            </div>
+
+            <div
+                class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+            >
+                <div
+                    class="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-4"
+                >
+                    <div>
+                        <h3
+                            class="text-sm font-semibold text-zx-text-strong sm:text-base"
+                        >
+                            消息与调用趋势
+                        </h3>
+                        <p class="mt-0.5 text-xs text-zx-text-subtle">
+                            {{
+                                granularityOptions.find(
+                                    (o) => o.value === granularity,
+                                )?.label
+                            }}
+                            粒度 · 虚线为上一等长周期
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button
+                            type="button"
+                            class="btn-touch rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                            :class="
+                                showMessages
+                                    ? 'text-white'
+                                    : 'border-slate-200 text-zx-text-muted hover:border-slate-300'
+                            "
+                            :style="
+                                showMessages
+                                    ? {
+                                          backgroundColor:
+                                              chartColors.blue.solid,
+                                          borderColor: chartColors.blue.solid,
+                                      }
+                                    : undefined
+                            "
+                            @click="toggleSeries('msg')"
+                        >
+                            消息
+                        </button>
+                        <button
+                            type="button"
+                            class="btn-touch rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                            :class="
+                                showCalls
+                                    ? 'text-white'
+                                    : 'border-slate-200 text-zx-text-muted hover:border-slate-300'
+                            "
+                            :style="
+                                showCalls
+                                    ? {
+                                          backgroundColor:
+                                              chartColors.pink.solid,
+                                          borderColor: chartColors.pink.solid,
+                                      }
+                                    : undefined
+                            "
+                            @click="toggleSeries('call')"
+                        >
+                            调用
+                        </button>
+                        <button
+                            type="button"
+                            class="btn-touch rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                            :class="
+                                showPrevPeriod
+                                    ? 'border-slate-600 bg-slate-600 text-white'
+                                    : 'border-slate-200 text-zx-text-muted hover:border-slate-400'
+                            "
+                            @click="showPrevPeriod = !showPrevPeriod"
+                        >
+                            上期
+                        </button>
+                    </div>
+                </div>
+                <div class="relative h-48 sm:h-64 xl:h-72">
+                    <div
+                        v-if="isTrendLoading"
+                        class="absolute inset-0 flex items-center justify-center"
+                    >
+                        <div
+                            class="h-7 w-7 animate-spin rounded-full border-2 border-zx-primary border-b-transparent"
+                        ></div>
+                    </div>
+                    <Bar
+                        v-else-if="chartData && chartData.datasets.length > 0"
+                        :data="chartData"
+                        :options="chartOptions"
+                    />
+                    <ZxEmptyState
+                        v-else
+                        text="暂无趋势数据"
+                        size="md"
+                        class="h-full justify-center"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <!-- 排行：活跃 / 插件 / 经济 -->
+        <div class="grid shrink-0 grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
             <div
                 class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
             >
@@ -723,197 +924,37 @@ onActivated(() => {
                 />
             </div>
 
-            <!-- KPI 竖排 4 条，贴满上排高度 -->
-            <div
-                class="flex flex-col gap-3 md:col-span-2 xl:col-span-1 xl:gap-2"
-            >
-                <div
-                    v-for="card in kpiCards"
-                    :key="card.key"
-                    class="flex flex-1 flex-col justify-center rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-5"
-                >
-                    <div class="text-[11px] text-zx-text-muted">
-                        {{ card.label }}
-                    </div>
-                    <div
-                        class="mt-0.5 truncate text-xl font-bold tabular-nums text-zx-text-strong sm:text-2xl"
-                    >
-                        <span
-                            v-if="
-                                (isOverviewLoading && !overview) ||
-                                (isTrendLoading && !trendData)
-                            "
-                            class="inline-block h-6 w-14 animate-pulse rounded bg-slate-100"
-                        ></span>
-                        <template v-else>{{ card.value }}</template>
-                    </div>
-                    <div
-                        class="mt-0.5 flex min-h-4 items-center gap-1.5 text-[11px]"
-                    >
-                        <span
-                            v-if="
-                                card.delta !== null && card.delta !== undefined
-                            "
-                            class="inline-flex items-center gap-0.5 font-semibold tabular-nums"
-                            :class="
-                                card.delta >= 0
-                                    ? 'text-emerald-600'
-                                    : 'text-rose-500'
-                            "
-                        >
-                            <component
-                                :is="
-                                    card.delta >= 0 ? TrendingUp : TrendingDown
-                                "
-                                class="h-3 w-3"
-                            />
-                            {{ Math.abs(card.delta).toFixed(1) }}%
-                        </span>
-                        <span
-                            v-if="card.hint"
-                            class="truncate text-zx-text-subtle"
-                        >
-                            {{ card.hint }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 左：热力图；右：趋势 -->
-        <div class="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-[auto_minmax(0,1fr)]">
-            <div
-                class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-            >
-                <div class="mb-1">
-                    <h3 class="text-sm font-semibold text-zx-text-strong sm:text-base">
-                        消息活跃时段
-                    </h3>
-                </div>
-                <ActivityHeatmap :data="heatmap" :loading="isHeatmapLoading" />
-            </div>
-
-            <div
-                class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-            >
-                <div
-                    class="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-4"
-                >
-                    <div>
-                        <h3 class="text-sm font-semibold text-zx-text-strong sm:text-base">
-                            消息与调用趋势
-                        </h3>
-                        <p class="mt-0.5 text-xs text-zx-text-subtle">
-                            {{
-                                granularityOptions.find((o) => o.value === granularity)
-                                    ?.label
-                            }}
-                            粒度 · 虚线为上一等长周期
-                        </p>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <button
-                            type="button"
-                            class="btn-touch rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
-                            :class="
-                                showMessages
-                                    ? 'border-blue-500 bg-blue-500 text-white'
-                                    : 'border-slate-200 text-zx-text-muted hover:border-blue-300'
-                            "
-                            @click="toggleSeries('msg')"
-                        >
-                            消息
-                        </button>
-                        <button
-                            type="button"
-                            class="btn-touch rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
-                            :class="
-                                showCalls
-                                    ? 'border-pink-500 bg-pink-500 text-white'
-                                    : 'border-slate-200 text-zx-text-muted hover:border-pink-300'
-                            "
-                            @click="toggleSeries('call')"
-                        >
-                            调用
-                        </button>
-                        <button
-                            type="button"
-                            class="btn-touch rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
-                            :class="
-                                showPrevPeriod
-                                    ? 'border-slate-600 bg-slate-600 text-white'
-                                    : 'border-slate-200 text-zx-text-muted hover:border-slate-400'
-                            "
-                            @click="showPrevPeriod = !showPrevPeriod"
-                        >
-                            上期
-                        </button>
-                    </div>
-                </div>
-                <div class="relative h-56 sm:h-72">
-                    <div
-                        v-if="isTrendLoading"
-                        class="absolute inset-0 flex items-center justify-center"
-                    >
-                        <div
-                            class="h-7 w-7 animate-spin rounded-full border-2 border-zx-primary border-b-transparent"
-                        ></div>
-                    </div>
-                    <Bar
-                        v-else-if="chartData && chartData.datasets.length > 0"
-                        :data="chartData"
-                        :options="chartOptions"
-                    />
-                    <div
-                        v-else
-                        class="flex h-full items-center justify-center text-sm text-zx-text-subtle"
-                    >
-                        暂无趋势数据
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 经济榜 -->
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 sm:gap-4">
-            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                <div class="mb-4 flex items-baseline gap-2">
-                    <h3 class="text-sm font-semibold text-zx-text-strong sm:text-base">
-                        好感度排行
-                    </h3>
-                    <span class="text-xs text-zx-text-subtle">Top 10</span>
-                </div>
-                <RankList
-                    :items="favorabilityItems"
-                    :loading="isEconomyLoading"
-                    tone="pink"
-                    :max="10"
-                    empty-text="暂无好感度数据"
-                />
-            </div>
-
-            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                <div class="mb-4 flex items-baseline gap-2">
-                    <h3 class="text-sm font-semibold text-zx-text-strong sm:text-base">
-                        金币排行
-                    </h3>
-                    <span class="text-xs text-zx-text-subtle">Top 10</span>
-                </div>
-                <RankList
-                    :items="goldItems"
-                    :loading="isEconomyLoading"
-                    tone="amber"
-                    :max="10"
-                    empty-text="暂无金币数据"
-                />
-            </div>
+            <EconomyRankCard
+                :favorability-items="favorabilityItems"
+                :gold-items="goldItems"
+                :loading="isEconomyLoading"
+            />
+            <WordCloudCard
+                :words="wordCloudWords"
+                :loading="isWordCloudLoading"
+            />
         </div>
 
         <!-- 明细表 -->
         <DetailStatsTable
+            class="shrink-0"
             :groups="groupStats"
             :friends="friendStats"
             :loading="isDetailLoading"
         />
+        </div>
     </div>
 </template>
+
+<style scoped>
+/* 压住 Home 胶片带给页面根的 overflow-y:auto，滚动统一交给内部面板 */
+.analytics-page-root {
+    overflow: hidden !important;
+}
+
+/* flex 列滚动容器里，overflow:hidden 的卡片默认可被压到 0 高；
+   禁止收缩，高度按内容撑开，才能滚到底 */
+.analytics-scroll > * {
+    flex-shrink: 0;
+}
+</style>
