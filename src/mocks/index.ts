@@ -4,7 +4,7 @@
  */
 
 import type { MockRoute } from './types'
-import { MOCK_MODE } from 'virtual:mock-mode'
+import { MOCK_MODE, isMockEnabled } from 'virtual:mock-mode'
 import { authRoutes } from './routes/auth'
 import { systemRoutes } from './routes/system'
 import { mainRoutes, dashboardRoutes } from './routes/main'
@@ -12,6 +12,7 @@ import { pluginRoutes, storeRoutes } from './routes/plugin'
 import { fileRoutes } from './routes/file'
 import { configRoutes, databaseRoutes } from './routes/config'
 import { manageRoutes, analyticsRoutes } from './routes/manage'
+import { aiRoutes } from './routes/ai'
 
 export const mockRoutes: MockRoute[] = [
     ...authRoutes,
@@ -25,9 +26,10 @@ export const mockRoutes: MockRoute[] = [
     ...databaseRoutes,
     ...manageRoutes,
     ...analyticsRoutes,
+    ...aiRoutes,
 ]
 
-if (MOCK_MODE) {
+if (MOCK_MODE && isMockEnabled()) {
     console.info(
         `[Mock] 模式已开启，共注册 ${mockRoutes.length} 条路由，所有数据均为本地假数据`,
     )
