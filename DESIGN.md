@@ -3,16 +3,16 @@
 本文档是 `zhenxun_webui` 项目的**唯一官方 UI / UX 设计与样式规范**。
 所有开发者及 AI Agent 在进行任何界面开发、样式修改或组件实现时，**必须严格遵循本文档的定义**。
 
-可视化参考基准页在运行时访问：`/ui-style`（源码：`src/views/ui-style/UIStyle.vue`）。
+可视化参考基准页在运行时访问：`/ui`（源码：`src/views/ui/UI.vue`）。
 
 ---
 
 ## 核心设计原则与基准
 
-1. **唯一绝对基准**：以 `src/views/ui-style/UIStyle.vue` 运行时呈现的语义定义为**唯一绝对标准**。
-   - 遇到任何颜色不一致、样式冲突时，**绝对禁止修改 `UIStyle.vue` 中的标准语义定义**，必须以其为准去修改其他业务组件与样式！
+1. **唯一绝对基准**：以 `src/views/ui/UI.vue` 运行时呈现的语义定义为**唯一绝对标准**。
+   - 遇到任何颜色不一致、样式冲突时，**绝对禁止修改 `UI.vue` 中的标准语义定义**，必须以其为准去修改其他业务组件与样式！
 2. **饱和实底 + 纯白对比字**：状态标签、徽标以及高亮选中的筛选胶囊，必须使用**高饱和实色底 + 纯白文字 `#ffffff`**（品牌主色使用配套变量 `var(--zx-color-on-primary)`）。**严禁使用半透淡色底**（如 `bg-green-100 text-green-700`、`bg-blue-50` 等淡色块方案已被彻底否决）。
-3. **组件规范化**：跨页面通用控件必须复用 `src/components/zxcomponent/` 目录下的统一组件（`<ZxTag>`、`<ZxButton>`、`ZXMessageBox` 等），禁止手写拼接非标样式。
+3. **组件规范化**：跨页面通用控件必须复用 `src/components/zxcomponent/` 目录下的统一组件，禁止手写拼接非标样式。**本文档不维护组件清单**（组件会持续增加，写进文档必然滞后）——写界面前先翻该目录、必要时对照 `/ui` 基准页确认形态；目录里已有的，一律复用。
 4. **克制现代，严禁滥用 Emoji**：界面设计遵循克制、现代、整洁与统一的专业视觉标准。除明确豁免场景外，**严禁在正式 UI 界面、功能按钮、状态标签、日志等级及通知弹窗中使用 Emoji** 代替矢量图标或堆砌花哨表情。
 
 ---
@@ -60,7 +60,7 @@
 - 注意历史上存在 `--zx-color-*` 与 `--color-zx-*` 两套前缀，工具类走后者，CSS `var()` 走前者；
 - **彩色实体底上的文字一律用配套对比字变量**：
   - 主色底：`text-[color:var(--zx-color-on-primary)]`
-  - 语义底：`var(--zx-color-on-success/-warning/-danger/-info/-primary-soft 对应档)`（`<ZxButton>` 与 `<ZxTag>` 已内置）。
+  - 语义底：`var(--zx-color-on-success/-warning/-danger/-info/-primary-soft 对应档)`（通用按钮与徽标组件已内置对比字，无需自己加）。
   - 对比字由 `src/theme/colorGenerator.ts` 的 `contrastTextFor()` 统一计算（**YIQ 感知亮度** >0.55 配深灰 `#334155`、否则白）。
   - **禁止** `bg-zx-* text-white` 硬编码（深色主题下 text-white 会被反转，且自定义亮主色下对比错乱），**禁止**使用 HSL 亮度判断对比字。
 
@@ -68,7 +68,7 @@
 
 ## 组件目录约定
 
-- **`src/components/zxcomponent/`**：只放跨页面复用的通用基础组件（组件库性质）：`ZxTag`、`ZxButton`、`ZXDropdown`、`ZXInput`、`ZxInputNumber`、`ZxSwitch`、`MiniDatePicker`、`ZXMessageBox`、`ZXNotification`、`ZXConfetti`、`ContextMenu`、`ZXTextEditor`、`LocationAddress`、`WhiteScreen`、`CornerFrame` 等；
+- **`src/components/zxcomponent/`**：只放跨页面复用的通用基础组件（组件库性质）。**本文档不列举组件名单**——组件会持续增加，写进文档必然滞后，有哪些可用一律以目录内实际文件为准（用法与视觉见 `/ui` 基准页）；
 - **页面自用组件**：放到所属页面/模块的专用目录：`src/views/<页面>/components/`（如 `views/plugin/components/PluginCard`、`views/manage/components/FriendCard`）或 `src/components/home/`（header 专属：User、HomeHeader、Island、RequestCenter 等）；
 - 新建组件前先判断：别的页面也会用 → `zxcomponent`；只有本页面用 → 页面私有目录。
 
@@ -87,11 +87,10 @@
 
 ## 徽标 / Tag 规范
 
-- **统一使用全局组件 `<ZxTag>`**（`src/components/zxcomponent/ZxTag.vue`，已自动注册）；
+- **统一复用 `zxcomponent/` 里的徽标组件**（已自动注册），尺寸与圆角由组件内置（走 MD3 chip 规范的 8dp 圆角，**全圆胶囊已被否决**），业务侧不要覆写；
 - **配色**：实色底 + 配套 `on-*` 对比字，底色与标准语义对照表完全一致，禁止在组件上手写硬编码色值或 soft 半透底；
-- **规格**：`h-[22px] rounded-lg px-2 text-[11px] leading-none font-medium`（ZxTag 内置；圆角走 MD3 chip 规范的 8dp，全圆胶囊已被否决）；
 - **语义档**：`primary`（品牌强调/选中）、`success`（启用/完成/在线）、`warning`（注意/待处理/常驻）、`danger`（错误/删除/下线）、`info`（提示/版本/链接）、`neutral`（禁用/占位）、`purple`（内置/置顶）、`cyan`（字典/数据类）；
-- 自定义颜色：使用 `color` prop（实色底 + 亮度自动计算对比字）；
+- 自定义颜色：使用组件的 `color` prop（实色底 + 亮度自动计算对比字）；
 - 群角色徽标：群主 `bg-red-500 text-white`、管理员 `bg-blue-500 text-white`、成员 `bg-gray-200 text-gray-500`。
 
 ---
@@ -101,8 +100,8 @@
 1. **统一矢量图标体系**：
    - 全局一律使用 **Lucide Vue 图标库**（如 `<CheckCircle2>`、`<AlertCircle>`、`<XCircle>`、`<Info>`、`<Bug>`、`<Clock>`、`<Trash2>` 等）；
    - 图标颜色严格跟随语义或文本色彩 Token（`text-zx-text-muted`、`text-zx-primary` 等），禁止用彩色 Emoji 字符充当 UI 按钮或标识（如 `⚠️`、`❌`、`🐛`、`⏱`、`✨`、`📌` 等）。
-2. **通知弹窗（ZXNotification）语义规范**：
-   - `ZXNotification` 的 `type` 属性必须严格使用标准枚举：`type: "success" | "error" | "warning" | "info"`；
+2. **通知弹窗语义规范**：
+   - 通知组件的 `type` 属性必须严格使用标准枚举：`type: "success" | "error" | "warning" | "info"`；
    - **严禁向 `type` 传递 Emoji 字符串**（如 `type: "🥳"`、`type: "😭"`、`type: "🎉"`、`type: "🧹"` 等）；通知组件已内置标准矢量 SVG 图标与主题动画。
 3. **允许使用 Emoji 的严格例外场景**：
    - **头部个性化问候语**：如 `HomeGreeting.vue`（“下午好，继续加油！”等时间段拟人化情境）；
@@ -114,16 +113,10 @@
 
 ## 按钮规范
 
-- **统一用 `<ZxButton>`**（`src/components/zxcomponent/ZxButton.vue`，已全局注册）：
-  - 内置 `rounded-full`、`btn-touch`、`cursor-pointer`、`type="button"` 默认值与统一禁用态；
-  - 基类内置 `inline-flex items-center justify-center gap-1.5 whitespace-nowrap`，图标与文字直接塞入 slot 即可；
-- **Props**：
-  - `variant="primary | ghost | outline | danger"`
-  - `circle`（图标圆钮，常用于操作栏如复制/删除/测试）
-  - `size="md | sm"`
-  - `disabled`
+- **统一复用 `zxcomponent/` 里的按钮组件**（已全局自动注册），具体 props 与档位以组件源码和 `/ui` 基准页为准，本文档不重复维护；
+- 按钮一律胶囊形 + `btn-touch` 微压反馈 + 统一禁用态，图标与文字直接塞默认 slot；
 - **主按钮文字**：必须使用 `--zx-color-on-primary` 变量（禁止写死 `text-white`，避免深色主题反转）；
-- **特殊交互形态**：分段切换、分页、菜单项、Island 胶囊、下拉触发器等特殊形态仍允许手写。
+- **特殊交互形态**（分段切换、分页、下拉菜单、弹窗骨架、搜索框、空状态等）**先去目录里找对应组件**——这些形态项目里都已有统一实现；确实没有才允许手写，写完记得沉淀成通用组件。
 
 ---
 
@@ -143,11 +136,9 @@
 ## 工具栏规范（插件页/通用标准）
 
 - 工具栏本身是一张标准卡片：`rounded-3xl border border-slate-200 bg-white p-3 sm:p-4`，搜索/筛选/统计/切换全集成；
-- **分段切换**：容器 `rounded-2xl border bg-gray-100 p-1`，选中项 `bg-white text-zx-primary shadow-sm`；
+- **分段切换 / 搜索框 / 分页**：一律复用 `zxcomponent/` 里对应的组件，容器与选中态样式由组件内置，不在业务侧手抄类名；
 - **状态与类型筛选**：未选中一律 `bg-gray-100 text-gray-500 hover:bg-gray-200`，激活态严格对齐标准色（全部 primary、启用/已安装 `#22c55e`、禁用/未安装 `#9ca3af`、内置 `#8b5cf6`、三方 `#f59e0b`，文字纯白且带 `shadow-2xs`），严禁使用淡色半透底；
-- **搜索框**：`rounded-full border bg-slate-50 py-1.5 pl-3.5 + Search 图标`，聚焦 `focus-within:bg-white`（聚焦不改边框色）；
-- **筛选下拉按钮**：`rounded-full border bg-gray-100 text-gray-500 hover:text-gray-700`（配合 ZXDropdown 的 `trigger-class`）；
-- **分页**：圆形 `h-8 w-8`，选中 `bg-zx-primary text-white`，禁用 `text-gray-300`；
+- **筛选下拉按钮**：复用下拉选择组件，通过其触发器样式入参（如 `trigger-class`）套 `rounded-full border bg-gray-100 text-gray-500 hover:text-gray-700`，不要另写一套下拉；
 - **卡片网格**：`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4`。
 
 ---
@@ -162,20 +153,19 @@
 
 ## 弹窗与确认交互
 
-- **确认框 / 简单输入弹窗**：**一律使用 `ZXMessageBox`**（支持 `slots.default` 自定义内容、危险操作 `confirmButtonHoverBg`），禁止随意手写 Teleport 弹窗；
-- **自定义弹窗骨架**：`Teleport to body` + `glass-overlay` 遮罩 + `modal-content` 白色圆角容器，进出场动效统一使用 GSAP 预设 `useGsapTransition` 中的 `modalJelly`；
-- **设置弹窗（SettingsModal）**：居中骨架（max-w-2xl），左侧分类导航 + 右侧内容区，无分割线靠留白分区，退出登录钉在侧边栏最底部；
-- **通知组件**：统一使用 `ZXNotification`。
+- **确认框 / 简单输入弹窗**：**一律复用 `zxcomponent/` 里的确认框组件**（默认插槽可放自定义内容、支持危险操作二次确认），禁止随意手写 Teleport 弹窗；
+- **常规弹窗**：一律复用目录里的弹窗组件（遮罩层级、白色圆角容器、点遮罩/按 Esc 关闭、进出场动效都已内置）；只有文件编辑器工作台这类特殊布局才自定义骨架，此时遮罩仍用 `glass-overlay`、动效仍走 GSAP 预设 `useGsapTransition`；
+- **设置弹窗（SettingsModal）**：居中固定尺寸骨架（`w-[min(960px,94vw)] × h-[min(700px,88vh)]`），左侧分组分类导航 + 右侧内容区，无顶部标题栏（标题在侧栏顶部、关闭钮悬浮内容区右上），每页带大标题 + 一行描述，无分割线靠留白分区，退出登录钉在侧边栏最底部，版本号与前端更新收在「关于」页；
+- **通知**：统一复用目录里的通知组件，其 `type` 枚举遵循上文 Emoji 规范。
 
 ---
 
 ## 表单控件规范
 
-- **输入框**：`ZXInput`（方框）、`ZxInputNumber`（数字步进器）或富文本 `rich-editor`（聊天输入）；
-- **下拉菜单**：`ZXDropdown`（`@/components/zxcomponent/ZXDropdown`，支持 `trigger-class`、`#trigger`、`#option`、快捷键及二级菜单）；
-- **开关**：`ZxSwitch`（`src/components/zxcomponent/ZxSwitch.vue`，`v-model` + `@change`）；
-- **日期选择**：自制 `MiniDatePicker.vue`（日期）；精确到时分秒的范围筛选用原生 `<input type="datetime-local" step="1">`；
-- **代码与文本编辑**：`ZXTextEditor`（Monaco 引擎，Shiki 高亮，主题跟随应用深浅色）。
+- **一律复用 `src/components/zxcomponent/` 下已有的表单控件组件**，本文档不再逐一列举组件名、路径与 props（去目录里看，视觉与用法对照 `/ui` 基准页）；
+- **禁止**在业务页面裸写 `<input>` / `<select>` / `<textarea>` 拼样式，也不要重复实现同类控件；目录里确实没有的形态，才新建通用组件放进该目录；
+- 表内 / 树内的紧凑 inline 编辑（改名、单元格即时编辑等）可保留原生元素，但样式必须与 `/ui` 展示的控件档位一致；
+- **明确豁免**：精确到时分秒的范围筛选继续用原生 `<input type="datetime-local" step="1">`；聊天输入用富文本 `rich-editor`。
 
 > **禁止引入 Element Plus**：项目已彻底移除 Element Plus 依赖，禁止引入任何 `el-*` 组件！加载态用 `animate-spin` 圆环，骨架屏用 `animate-pulse` 色块。
 
