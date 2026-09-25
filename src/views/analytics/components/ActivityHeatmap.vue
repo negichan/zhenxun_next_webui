@@ -124,12 +124,12 @@ const segHeight = (count: number) => count * CELL_H + (count - 1) * GAP;
             ></div>
         </div>
 
-        <div
+        <ZxEmptyState
             v-else-if="!data || data.total === 0"
-            class="py-10 text-center text-sm text-zx-text-subtle"
-        >
-            该时间范围内暂无消息
-        </div>
+            text="该时间范围内暂无消息"
+            size="sm"
+            class="justify-center"
+        />
 
         <template v-else>
             <div
