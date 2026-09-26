@@ -102,6 +102,10 @@ const handleKeydown = (e: KeyboardEvent) => {
     if (target?.closest("input, textarea, select, [contenteditable]")) return;
     if (hasAnyModalOpen()) return;
 
+    // 有文本选区时放行系统复制/剪切，避免抢走 Ctrl+C/X
+    const selection = String(window.getSelection() ?? "").trim();
+    if (selection) return;
+
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.key.toLowerCase() === "a") {
         e.preventDefault();
