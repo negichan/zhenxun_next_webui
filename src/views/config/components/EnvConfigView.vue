@@ -255,7 +255,7 @@ onMounted(() => {
 
                 <!-- 添加配置按钮 -->
                 <ZxButton
-                    variant="outline"
+                    variant="primary"
                     size="sm"
                     @click="addModalVisible = true"
                 >

@@ -105,7 +105,7 @@ const handleConfirm = () => {
     <ZxModal
         v-model="open"
         title="新增环境变量配置"
-        subtitle="向 .env.dev 中添加新的键值对配置项"
+
         :icon="Plus"
         size="md"
     >
@@ -120,6 +120,7 @@ const handleConfirm = () => {
                 </label>
                 <ZXInput
                     v-model="keyInput"
+                    rounded="xl"
                     placeholder="例如: BOT_RUN_MODE, SYSTEM_PROXY"
                     class="font-mono text-xs"
                     @keydown.enter.prevent="handleConfirm"
@@ -138,6 +139,7 @@ const handleConfirm = () => {
                 </label>
                 <ZXInput
                     v-model="commentInput"
+                    rounded="xl"
                     placeholder="说明此配置的用途或示例"
                 />
             </div>
@@ -187,6 +189,7 @@ const handleConfirm = () => {
                     v-model="valueInput"
                     type="textarea"
                     :rows="3"
+                    rounded="xl"
                     placeholder="例如: 8080，或带引号的文本，或 True"
                     input-class="font-mono text-xs"
                 />
