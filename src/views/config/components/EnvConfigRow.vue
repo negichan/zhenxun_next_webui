@@ -140,6 +140,7 @@ const handleDelete = async () => {
                 :model-value="entry.value"
                 expandable
                 :expand-threshold="0"
+                rounded="xl"
                 placeholder="请输入配置值..."
                 class="font-mono text-xs"
                 @update:model-value="emit('update:value', String($event))"
@@ -150,6 +151,7 @@ const handleDelete = async () => {
                 v-else-if="entry.isSecret && !entry.isMultiLine"
                 type="password"
                 :model-value="entry.value"
+                rounded="xl"
                 placeholder="请输入配置值..."
                 class="font-mono text-xs tracking-wide"
                 @update:model-value="emit('update:value', String($event))"
@@ -161,6 +163,7 @@ const handleDelete = async () => {
                 type="textarea"
                 :rows="2"
                 :model-value="entry.value"
+                rounded="xl"
                 placeholder="请输入配置值..."
                 input-class="font-mono text-xs leading-relaxed"
                 @update:model-value="emit('update:value', String($event))"
@@ -170,6 +173,7 @@ const handleDelete = async () => {
             <ZXInput
                 v-else
                 :model-value="entry.value"
+                rounded="xl"
                 placeholder="请输入配置值..."
                 class="font-mono text-xs"
                 @update:model-value="emit('update:value', String($event))"
