@@ -16,7 +16,7 @@ import { CircleX, Eye, EyeOff, Search } from "lucide-vue-next";
  * - 统一边框规范 border-slate-200，悬浮与聚焦 1px 主题色边框 hover:border-zx-primary focus-within:border-zx-primary，transition-colors duration-200 平滑过渡，无浮夸阴影；
  * - 原生集成 type="search" 搜索模式：内置 Search 图标、默认开启一键清空、支持回车 @search 事件；
  * - 原生集成 type="textarea" 多行文本模式：自动采用 rounded-2xl 卡片级圆角，支持 rows 与一键清空/字数限制；
- * - 默认单行 rounded-full 全圆角胶囊形态（支持 2xl / xl / lg）；
+ * - 默认单行 rounded-xl 表单圆角；type="search" 默认 full 胶囊（可显式覆盖）；支持 full / 2xl / xl / lg；
  * - 原生密码类型自动集成 Eye / EyeOff 明文密文切换开关；
  * - 支持磁贴发光 (v-tile-glow)；
  * - 完美透传根级 class/style 与输入框原生 attrs。
@@ -42,7 +42,7 @@ const props = withDefaults(
         showWordLimit?: boolean;
         /** 尺寸：sm (32px) | md (36px) | lg (40px) */
         size?: "sm" | "md" | "lg";
-        /** 圆角形态：full 胶囊 | 2xl | xl | lg */
+        /** 圆角形态：不传时表单默认 2xl，type="search" 默认 full；显式传入优先 */
         rounded?: "full" | "2xl" | "xl" | "lg";
         /** 禁用状态 */
         disabled?: boolean;
@@ -74,7 +74,7 @@ const props = withDefaults(
         type: "text",
         rows: 3,
         size: "md",
-        rounded: "full",
+        rounded: undefined as "full" | "2xl" | "xl" | "lg" | undefined,
         disabled: false,
         readonly: false,
         clearable: undefined as any,
@@ -255,13 +255,18 @@ const searchIconClass = computed(() => {
     }
 });
 
-// 圆角样式
+// 圆角样式：表单默认 xl（短控件用 2xl 会贴半高呈全圆），搜索框默认 full，显式 rounded 优先
 const roundedClass = computed(() => {
-    // 多行文本框默认使用卡片级圆角 rounded-2xl，全圆胶囊形态只适用于单行
-    if (isTextarea.value && props.rounded === "full") {
+    let r = props.rounded ?? (props.type === "search" ? "full" : "xl");
+    // 小尺寸控件上 2xl/全圆会与半高重合，自动降档
+    if (props.size === "sm" && (r === "2xl" || r === "full") && props.type !== "search") {
+        r = "xl";
+    }
+    // 多行文本框使用卡片级圆角，全圆胶囊形态只适用于单行搜索
+    if (isTextarea.value && r === "full") {
         return "rounded-2xl";
     }
-    switch (props.rounded) {
+    switch (r) {
         case "lg":
             return "rounded-lg";
         case "xl":
@@ -352,6 +357,7 @@ defineExpose({
             :class="[
                 roundedClass,
                 sizeClass,
+                'select-text',
                 disabled ? 'cursor-not-allowed bg-slate-100 opacity-60' : '',
                 message && messageType === 'error' ? 'border-red-400! focus-within:border-red-400!' : '',
                 isTextarea ? 'flex-col items-stretch' : 'items-center',

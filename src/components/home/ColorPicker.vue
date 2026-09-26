@@ -236,7 +236,7 @@ onMounted(() => {
                 <ZXInput
                     v-model="hexInput"
                     class="flex-1"
-                    rounded="lg"
+                    rounded="2xl"
                     size="sm"
                     input-class="font-mono"
                     placeholder=""
