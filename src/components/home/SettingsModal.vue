@@ -703,10 +703,14 @@ const handleLogout = () => {
                                         >
                                             v{{ version }}
                                         </span>
+                                        <ZxTag variant="warning">
+                                            测试预览版
+                                        </ZxTag>
                                     </div>
                                     <p
                                         class="mt-2.5 text-xs leading-relaxed text-zx-text-muted"
                                     >
+                                        当前为测试预览版本，界面与功能可能随时调整。
                                         绪山真寻 Bot 的 Web 管理后台，由 NegiChan
                                         开发与维护，MIT 开源。
                                     </p>
