@@ -4,14 +4,30 @@
 
 export interface ModelDetailItem {
     model_name: string;
+    /** 是否写入配置；false 时保存时忽略该模型 */
+    enabled?: boolean;
     temperature?: number | null;
     max_tokens?: number | null;
     max_output_tokens?: number | null;
     reasoning_effort?: string | null;
+    /** 上下文窗口 */
+    context_limit?: number | null;
+    /** 智能配置 */
+    smart_config?: boolean;
+    /** 输入类型：text / image / video / pdf */
+    input_types?: string[];
+    /** 模型能力 */
+    capabilities?: string[];
+    /** 推理等级（从低到高） */
+    reasoning_levels?: string[];
+    /** 推理参数映射 */
+    reasoning_param_map?: string | null;
 }
 
 export interface ProviderItem {
     name: string;
+    /** 自定义图标 key（public/icons/providers/<key>.svg），可选 */
+    icon?: string;
     api_key: string | string[];
     api_base?: string | null;
     api_type: string;
