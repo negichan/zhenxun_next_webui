@@ -1,25 +1,44 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
+import type { Component } from "vue";
 import {
+    Boxes,
     Check,
+    ChevronDown,
     Eye,
-    EyeOff,
     Globe,
+    GripVertical,
+    HelpCircle,
+    Library,
     Loader2,
-    Play,
+    Lock,
+    Pencil,
+    Plug,
     Plus,
+    RefreshCw,
+    Search,
+    Server,
+    SlidersHorizontal,
     Sparkles,
     Trash2,
     X,
 } from "lucide-vue-next";
+import { modalJelly } from "@/composables/useGsapTransition";
 import ZxButton from "@/components/zxcomponent/ZxButton.vue";
-import ZxModal from "@/components/zxcomponent/ZxModal.vue";
 import ZxEmptyState from "@/components/zxcomponent/ZxEmptyState.vue";
-import ZxSwitch from "@/components/zxcomponent/ZxSwitch.vue";
 import ZxInputNumber from "@/components/zxcomponent/ZxInputNumber.vue";
+import ZxModal from "@/components/zxcomponent/ZxModal.vue";
+import ZxSwitch from "@/components/zxcomponent/ZxSwitch.vue";
+import ZxTag from "@/components/zxcomponent/ZxTag.vue";
+import ZXInput from "@/components/zxcomponent/ZXInput.vue";
+import {
+    ZXSelect,
+    type ZXSelectOption,
+} from "@/components/zxcomponent/ZXSelect";
 import ProviderIcon from "./ProviderIcon.vue";
 import { ZXNotification } from "@/services/ui";
 import { aiApi } from "@/utils/api-next";
+import { MOCK_MODE, isMockEnabled } from "virtual:mock-mode";
 import type {
     ModelDetailItem,
     ModelsDevProviderItem,
@@ -39,53 +58,236 @@ const emit = defineEmits<{
     (e: "delete", providerName: string): void;
 }>();
 
-// 密码显示状态
-const showKeyPlain = ref(false);
+// ---------------------------------------------------------------------------
+// 侧栏分区
+// ---------------------------------------------------------------------------
 
-// models.dev 在线选择器状态
+interface Section {
+    id: string;
+    label: string;
+    desc: string;
+    icon: Component;
+}
+
+const sections: Section[] = [
+    {
+        id: "basics",
+        label: "基础信息",
+        desc: "配置服务商连接、认证密钥与可调用模型",
+        icon: Server,
+    },
+    {
+        id: "params",
+        label: "调用参数",
+        desc: "设置超时、采样温度与输出长度上限",
+        icon: SlidersHorizontal,
+    },
+];
+
+const activeSection = ref<string>("basics");
+const activeMeta = computed(
+    () => sections.find((s) => s.id === activeSection.value) ?? sections[0]
+);
+
+const goSection = (id: string) => {
+    activeSection.value = id;
+};
+
+// ---------------------------------------------------------------------------
+// 表单
+// ---------------------------------------------------------------------------
+
+const form = ref<{
+    name: string;
+    icon: string;
+    api_type: string;
+    api_base: string;
+    api_key_str: string;
+    timeout: number;
+    temperature: number | null;
+    max_output_tokens: number | null;
+    models: ModelDetailItem[];
+    enabled: boolean;
+}>({
+    name: "",
+    icon: "",
+    api_type: "openai",
+    api_base: "",
+    api_key_str: "",
+    timeout: 180,
+    temperature: null,
+    max_output_tokens: null,
+    models: [],
+    enabled: true,
+});
+
+// 重命名 / 换图标弹窗
+const showNameDialog = ref(false);
+const nameDraft = ref("");
+const iconDraft = ref("");
+
+const PROVIDER_ICON_KEYS = [
+    "deepseek",
+    "openai",
+    "claude",
+    "gemini",
+    "siliconflow",
+    "doubao",
+    "zhipu",
+    "qwen",
+    "wenxin",
+    "moonshot",
+    "minimax",
+    "mistral",
+    "groq",
+    "openrouter",
+    "ollama",
+    "together",
+    "perplexity",
+    "azure",
+    "baichuan",
+    "stepfun",
+    "yi",
+    "grok",
+    "nvidia",
+    "bedrock",
+    "github",
+    "cloudflare",
+    "replicate",
+    "fireworks",
+    "novita",
+    "deepinfra",
+    "upstage",
+    "huggingface",
+    "meta",
+    "sub2api",
+    "newapi",
+    "oneapi",
+    "ai302",
+    "aihubmix",
+    "cometapi",
+    "llmapi",
+    "openwebui",
+    "lobehub",
+    "relay",
+];
+
+const openNameDialog = () => {
+    nameDraft.value = form.value.name;
+    iconDraft.value = form.value.icon || "";
+    showNameDialog.value = true;
+};
+
+const confirmNameDialog = () => {
+    form.value.name = nameDraft.value.trim();
+    form.value.icon = iconDraft.value;
+    showNameDialog.value = false;
+};
+
+const isEditMode = computed(() => !!props.provider);
+
+// ---------------------------------------------------------------------------
+// models.dev 目录
+// ---------------------------------------------------------------------------
+
 const modelsDevCatalog = ref<ModelsDevProviderItem[]>([]);
 const loadingModelsDev = ref(false);
-const showModelsDevPicker = ref(false);
 const modelsDevSearch = ref("");
+const refreshingModelsDev = ref(false);
+const showProviderPicker = ref(false);
 
-// 单模型测速状态
-const modelTestState = ref<
-    Record<
-        string,
-        {
-            loading?: boolean;
-            success?: boolean;
-            latency_ms?: number | null;
-            message?: string;
-        }
-    >
->({});
-
-// 打开 models.dev 选择器（懒加载数据）
-const openModelsDevPicker = async () => {
-    showModelsDevPicker.value = true;
-    modelsDevSearch.value = "";
-    if (modelsDevCatalog.value.length === 0) {
-        loadingModelsDev.value = true;
-        try {
-            const res = await aiApi.getModelsDevCatalog();
-            if (res.data?.providers) {
-                modelsDevCatalog.value = res.data.providers;
+const ensureModelsDevCatalog = async (force = false) => {
+    if (!force && modelsDevCatalog.value.length > 0) return true;
+    loadingModelsDev.value = true;
+    try {
+        // 仅 mock 模式直连 models.dev 补全量数据；正式环境只走后端接口
+        if (MOCK_MODE && isMockEnabled()) {
+            try {
+                const remote = await fetchModelsDevRemote();
+                if (remote.length) {
+                    modelsDevCatalog.value = remote;
+                    return true;
+                }
+            } catch {
+                /* 直连失败则回退接口 */
             }
-        } catch (e: any) {
+        }
+        const res = force
+            ? await aiApi.refreshModelsDevCatalog()
+            : await aiApi.getModelsDevCatalog(
+                  modelsDevSearch.value.trim() || undefined
+              );
+        const payload: any = (res as any)?.data ?? res;
+        const list: ModelsDevProviderItem[] = Array.isArray(payload)
+            ? payload
+            : payload?.providers || [];
+        modelsDevCatalog.value = list;
+        return true;
+    } catch (e: any) {
+        ZXNotification({
+            title: "获取在线服务商库失败",
+            message: e?.message || "无法加载 models.dev 目录",
+            type: "error",
+            position: "top-right",
+        });
+    } finally {
+        loadingModelsDev.value = false;
+    }
+    return false;
+};
+
+/** 直连 https://models.dev/api.json 并转成前端目录结构 */
+async function fetchModelsDevRemote(): Promise<ModelsDevProviderItem[]> {
+    const res = await fetch("https://models.dev/api.json", {
+        cache: "no-cache",
+    });
+    if (!res.ok) throw new Error(`models.dev HTTP ${res.status}`);
+    const raw: Record<string, any> = await res.json();
+    return Object.values(raw || {}).map((p: any) => {
+        const models = Object.entries(p?.models || {}).map(
+            ([id, m]: [string, any]) => ({
+                id,
+                name: m?.name || id,
+                description: m?.description || null,
+                context_limit: m?.limit?.context ?? null,
+                max_output_tokens: m?.limit?.output ?? null,
+                reasoning: !!m?.reasoning,
+                tool_call: !!m?.tool_call,
+                temperature: m?.temperature !== false,
+                release_date: m?.release_date || null,
+            })
+        );
+        return {
+            id: String(p?.id || ""),
+            name: String(p?.name || p?.id || ""),
+            api_base: null as string | null,
+            api_type: normalizeApiType(String(p?.api || p?.npm || "openai")),
+            npm: p?.npm || null,
+            doc: p?.doc || null,
+            env: p?.env || [],
+            models_count: models.length,
+            models,
+        };
+    });
+}
+
+const refreshModelsDev = async () => {
+    refreshingModelsDev.value = true;
+    try {
+        const ok = await ensureModelsDevCatalog(true);
+        if (ok) {
             ZXNotification({
-                title: "获取在线服务商库失败",
-                message: e?.message || "无法加载 models.dev 目录",
-                type: "error",
+                title: "models.dev 已更新",
+                message: "在线模型库缓存已刷新",
+                type: "success",
                 position: "top-right",
             });
-        } finally {
-            loadingModelsDev.value = false;
         }
+    } finally {
+        refreshingModelsDev.value = false;
     }
 };
 
-// 过滤后的 models.dev 服务商列表
 const filteredModelsDevProviders = computed(() => {
     const q = modelsDevSearch.value.trim().toLowerCase();
     if (!q) return modelsDevCatalog.value.slice(0, 30);
@@ -98,7 +300,6 @@ const filteredModelsDevProviders = computed(() => {
         .slice(0, 50);
 });
 
-// 应用选中的 models.dev 服务商配置
 const applyModelsDevProvider = (p: ModelsDevProviderItem) => {
     form.value.name = p.name || p.id;
     form.value.api_type = p.api_type || "openai";
@@ -110,7 +311,8 @@ const applyModelsDevProvider = (p: ModelsDevProviderItem) => {
         max_output_tokens: m.max_output_tokens,
         reasoning_effort: m.reasoning ? "medium" : null,
     }));
-    showModelsDevPicker.value = false;
+    showProviderPicker.value = false;
+    goSection("basics");
     ZXNotification({
         title: "服务商预设已载入",
         message: `已自动填入「${p.name || p.id}」协议、端点与 ${p.models.length} 个模型`,
@@ -119,7 +321,6 @@ const applyModelsDevProvider = (p: ModelsDevProviderItem) => {
     });
 };
 
-// 尝试在 models.dev 中匹配当前厂商（用于编辑模式下快速补齐新模型）
 const matchedOnlineProvider = computed(() => {
     const name = form.value.name.trim().toLowerCase();
     if (!name) return null;
@@ -128,18 +329,8 @@ const matchedOnlineProvider = computed(() => {
     );
 });
 
-// 从 models.dev 补齐新模型
 const syncModelsFromOnline = async () => {
-    if (modelsDevCatalog.value.length === 0) {
-        try {
-            const res = await aiApi.getModelsDevCatalog();
-            if (res.data?.providers) {
-                modelsDevCatalog.value = res.data.providers;
-            }
-        } catch {
-            // 忽略
-        }
-    }
+    await ensureModelsDevCatalog();
     if (!matchedOnlineProvider.value) {
         ZXNotification({
             title: "未找到在线匹配项",
@@ -183,194 +374,467 @@ const syncModelsFromOnline = async () => {
     }
 };
 
-// 真寻官方原生常用预设模板
+// ---------------------------------------------------------------------------
+// 厂商预设
+// ---------------------------------------------------------------------------
+
 interface ProviderPreset {
     label: string;
     name: string;
     api_type: string;
     api_base: string;
-    default_models: string[];
 }
 
 const PRESETS: ProviderPreset[] = [
     {
+        label: "自定义",
+        name: "Custom",
+        api_type: "openai",
+        api_base: "",
+    },
+    {
         label: "DeepSeek",
         name: "DeepSeek",
-        api_type: "deepseek",
+        api_type: "openai",
         api_base: "https://api.deepseek.com",
-        default_models: ["deepseek-chat", "deepseek-reasoner"],
     },
     {
         label: "Google Gemini",
         name: "Gemini",
-        api_type: "gemini",
+        api_type: "openai",
         api_base: "https://generativelanguage.googleapis.com",
-        default_models: [
-            "gemini-2.5-flash",
-            "gemini-2.5-pro",
-            "gemini-2.5-flash-lite",
-            "gemini-3.5-flash",
-            "gemini-embedding-2",
-        ],
     },
     {
         label: "硅基流动",
         name: "siliconflow",
         api_type: "openai",
         api_base: "https://api.siliconflow.cn",
-        default_models: [
-            "deepseek-ai/DeepSeek-V3",
-            "deepseek-ai/DeepSeek-R1",
-            "BAAI/bge-m3",
-            "BAAI/bge-reranker-v2-m3",
-        ],
     },
     {
         label: "火山方舟 (Doubao)",
         name: "Doubao",
-        api_type: "doubao",
+        api_type: "openai",
         api_base: "https://ark.cn-beijing.volces.com/api",
-        default_models: [
-            "doubao-seed-1-6-250615",
-            "doubao-seed-1-6-flash-250615",
-        ],
     },
     {
         label: "智谱 GLM",
         name: "GLM",
-        api_type: "glm",
+        api_type: "openai",
         api_base: "https://open.bigmodel.cn",
-        default_models: ["glm-4-flash", "glm-4-plus", "glm-4.6v-flash"],
     },
     {
         label: "OpenRouter",
         name: "OpenRouter",
-        api_type: "openrouter",
+        api_type: "openai",
         api_base: "https://openrouter.ai/api",
-        default_models: ["google/gemini-2.5-flash", "anthropic/claude-3.5-sonnet"],
     },
     {
         label: "MiniMax",
         name: "MiniMax",
-        api_type: "minimax",
-        api_base: "https://api.minimaxi.com",
-        default_models: ["MiniMax-Text-01"],
-    },
-    {
-        label: "自定义 OpenAI",
-        name: "Custom",
         api_type: "openai",
-        api_base: "https://api.openai.com/v1",
-        default_models: ["gpt-4o", "gpt-4o-mini"],
+        api_base: "https://api.minimaxi.com",
     },
 ];
 
-// 真寻底层原生支持的调用协议
-const CORE_PROTOCOLS = [
-    { value: "openai", label: "OpenAI 兼容" },
-    { value: "gemini", label: "Gemini" },
-    { value: "deepseek", label: "DeepSeek" },
-    { value: "doubao", label: "火山方舟" },
-    { value: "glm", label: "智谱 GLM" },
-    { value: "openrouter", label: "OpenRouter" },
-    { value: "minimax", label: "MiniMax" },
-];
+/** API 格式：仅 Claude / OpenAI 原生，其余一律按 OpenAI 兼容 */
+const API_FORMATS = [
+    { value: "claude", label: "Anthropic Messages", suffix: "/v1/messages" },
+    { value: "openai", label: "OpenAI 兼容", suffix: "/chat/completions" },
+    { value: "openai_responses", label: "Responses", suffix: "/responses" },
+] as const;
 
-const form = ref<{
-    name: string;
-    api_type: string;
-    api_base: string;
-    api_key_str: string;
-    timeout: number;
-    temperature: number | null;
-    max_output_tokens: number | null;
-    models: ModelDetailItem[];
-    enabled: boolean;
-}>({
-    name: "",
-    api_type: "openai",
-    api_base: "",
-    api_key_str: "",
-    timeout: 180,
-    temperature: null,
-    max_output_tokens: null,
-    models: [],
-    enabled: true,
-});
-
-const newModelInput = ref("");
-const isEditMode = computed(() => !!props.provider);
-
-watch(
-    () => props.visible,
-    (val) => {
-        if (val) {
-            showModelsDevPicker.value = false;
-            modelTestState.value = {};
-        }
+/** 归一化：非 Claude / OpenAI Responses 一律视为 OpenAI 兼容 */
+const normalizeApiType = (raw?: string | null): string => {
+    const t = (raw || "").toLowerCase().trim();
+    if (t === "claude" || t === "anthropic" || t === "anthropic_messages") {
+        return "claude";
     }
+    if (
+        t === "openai_responses" ||
+        t === "openai-responses" ||
+        t === "responses" ||
+        t === "response"
+    ) {
+        return "openai_responses";
+    }
+    return "openai";
+};
+
+const apiFormatOptions = computed<ZXSelectOption[]>(() =>
+    API_FORMATS.map((f) => ({
+        label: `${f.suffix} (${f.label})`,
+        value: f.value,
+    }))
 );
 
-watch(
-    () => props.provider,
-    (val) => {
-        if (val) {
-            form.value = {
-                name: val.name,
-                api_type: val.api_type || "openai",
-                api_base: val.api_base || "",
-                api_key_str: Array.isArray(val.api_key)
-                    ? val.api_key.join("\n")
-                    : val.api_key || "",
-                timeout: val.timeout ?? 180,
-                temperature: val.temperature ?? null,
-                max_output_tokens: val.max_output_tokens ?? null,
-                models: JSON.parse(JSON.stringify(val.models || [])),
-                enabled: val.enabled !== false,
-            };
-        } else {
-            form.value = {
-                name: "",
-                api_type: "openai",
-                api_base: "",
-                api_key_str: "",
-                timeout: 180,
-                temperature: null,
-                max_output_tokens: null,
-                models: [],
-                enabled: true,
-            };
-        }
-    },
-    { immediate: true }
-);
+const apiFormatDisplay = computed(() => {
+    const found = API_FORMATS.find(
+        (f) => f.value === normalizeApiType(form.value.api_type)
+    );
+    return found ? `${found.suffix} (${found.label})` : "";
+});
 
 const applyPreset = (preset: ProviderPreset) => {
     form.value.name = preset.name;
     form.value.api_type = preset.api_type;
     form.value.api_base = preset.api_base;
-    form.value.models = preset.default_models.map((m) => ({
-        model_name: m,
-    }));
+    showProviderPicker.value = false;
+    goSection("basics");
+    ZXNotification({
+        title: "模板已应用",
+        message: `已载入「${preset.label}」连接配置`,
+        type: "success",
+        position: "top-right",
+    });
 };
 
-const addModel = () => {
-    const raw = newModelInput.value.trim();
+const openProviderPicker = async () => {
+    showProviderPicker.value = true;
+    modelsDevSearch.value = "";
+    modelsDevCatalog.value = [];
+    await ensureModelsDevCatalog();
+};
+
+// ---------------------------------------------------------------------------
+// 模型管理 / 测速
+// ---------------------------------------------------------------------------
+
+const modelTestState = ref<
+    Record<
+        string,
+        {
+            loading?: boolean;
+            success?: boolean;
+            latency_ms?: number | null;
+            message?: string;
+        }
+    >
+>({});
+
+// 添加模型弹窗
+const showAddModel = ref(false);
+const showAdvanced = ref(false);
+const addModelForm = ref<{
+    smart_config: boolean;
+    model_name: string;
+    context_limit: string | number;
+    max_output_tokens: string | number;
+    temperature: number | null;
+    reasoning_effort: string | null;
+    input_types: string[];
+    capabilities: string[];
+    reasoning_levels: string[];
+    reasoning_param_map: string;
+}>({
+    smart_config: true,
+    model_name: "",
+    context_limit: "",
+    max_output_tokens: "",
+    temperature: null,
+    reasoning_effort: null,
+    input_types: ["text"],
+    capabilities: [],
+    reasoning_levels: [],
+    reasoning_param_map: "",
+});
+
+const INPUT_TYPE_OPTIONS = [
+    { key: "text", label: "文本", locked: true },
+    { key: "image", label: "图片" },
+    { key: "video", label: "视频" },
+    { key: "pdf", label: "PDF" },
+] as const;
+
+const CAPABILITY_OPTIONS = [
+    { key: "structured_output", label: "结构化输出" },
+    { key: "native_search", label: "原生联网搜索" },
+    { key: "system_message", label: "对话中系统消息" },
+] as const;
+
+const capabilityLabel = (key: string) => {
+    return (
+        CAPABILITY_OPTIONS.find((c) => c.key === key)?.label || key
+    );
+};
+
+const REASONING_LEVEL_OPTIONS = ["low", "medium", "high"] as const;
+
+const reasoningEffortOptions: ZXSelectOption[] = [
+    { label: "不限", value: "" },
+    { label: "低", value: "low" },
+    { label: "中", value: "medium" },
+    { label: "高", value: "high" },
+];
+
+const toggleInputType = (key: string, locked?: boolean) => {
+    if (locked) return;
+    const set = new Set(addModelForm.value.input_types);
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+    addModelForm.value.input_types = [...set];
+};
+
+const toggleCapability = (key: string) => {
+    const set = new Set(addModelForm.value.capabilities);
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+    addModelForm.value.capabilities = [...set];
+};
+
+const addReasoningLevel = () => {
+    const next = REASONING_LEVEL_OPTIONS.find(
+        (l) => !addModelForm.value.reasoning_levels.includes(l)
+    );
+    if (next) addModelForm.value.reasoning_levels.push(next);
+};
+
+const removeReasoningLevel = (index: number) => {
+    addModelForm.value.reasoning_levels.splice(index, 1);
+};
+
+const reasoningLevelInput = ref("");
+
+const commitReasoningLevel = () => {
+    const raw = reasoningLevelInput.value.trim().toLowerCase();
     if (!raw) return;
-    const names = raw.split(/[\n,，\s]+/).filter(Boolean);
-    for (const name of names) {
-        if (!form.value.models.some((m) => m.model_name === name)) {
-            form.value.models.push({ model_name: name });
+    if (!addModelForm.value.reasoning_levels.includes(raw)) {
+        addModelForm.value.reasoning_levels.push(raw);
+    }
+    reasoningLevelInput.value = "";
+};
+
+const openAddModel = () => {
+    editingModelIndex.value = -1;
+    resetAddModelForm();
+    showAddModel.value = true;
+};
+
+// models.dev 模型搜索浮层
+const showModelSearch = ref(false);
+const modelSearchQuery = ref("");
+
+const flatModelsDev = computed(() => {
+    const list: {
+        provider: string;
+        provider_id: string;
+        id: string;
+        name: string;
+        context_limit?: number | null;
+        max_output_tokens?: number | null;
+        reasoning?: boolean;
+    }[] = [];
+    for (const p of modelsDevCatalog.value) {
+        for (const m of p.models) {
+            list.push({
+                provider: p.name,
+                provider_id: p.id,
+                id: m.id,
+                name: m.name,
+                context_limit: m.context_limit,
+                max_output_tokens: m.max_output_tokens,
+                reasoning: m.reasoning,
+            });
         }
     }
-    newModelInput.value = "";
+    return list;
+});
+
+const filteredModelsDevModels = computed(() => {
+    const q = modelSearchQuery.value.trim().toLowerCase();
+    if (!q) return flatModelsDev.value.slice(0, 30);
+    return flatModelsDev.value
+        .filter(
+            (m) =>
+                m.id.toLowerCase().includes(q) ||
+                m.name.toLowerCase().includes(q) ||
+                m.provider.toLowerCase().includes(q)
+        )
+        .slice(0, 50);
+});
+
+const openModelSearch = async () => {
+    showModelSearch.value = true;
+    modelSearchQuery.value = "";
+    // 每次打开都请求 models.dev 目录接口
+    modelsDevCatalog.value = [];
+    await ensureModelsDevCatalog();
+};
+
+const applyModelFromDev = (m: {
+    id: string;
+    context_limit?: number | null;
+    max_output_tokens?: number | null;
+    reasoning?: boolean;
+}) => {
+    addModelForm.value.model_name = m.id;
+    addModelForm.value.context_limit = m.context_limit ?? "";
+    addModelForm.value.max_output_tokens = m.max_output_tokens ?? "";
+    addModelForm.value.reasoning_effort = m.reasoning ? "medium" : null;
+    showModelSearch.value = false;
+};
+
+/** 智能填：按模型 ID 从 models.dev 目录补全参数 */
+const smartFillFromModelsDev = async () => {
+    const id = addModelForm.value.model_name.trim().toLowerCase();
+    if (!id) return;
+    await ensureModelsDevCatalog();
+    const hit = flatModelsDev.value.find((m) => m.id.toLowerCase() === id);
+    if (!hit) return;
+    // 只补空字段，不覆盖用户已填
+    if (
+        addModelForm.value.context_limit === "" ||
+        addModelForm.value.context_limit == null
+    ) {
+        addModelForm.value.context_limit = hit.context_limit ?? "";
+    }
+    if (
+        addModelForm.value.max_output_tokens === "" ||
+        addModelForm.value.max_output_tokens == null
+    ) {
+        addModelForm.value.max_output_tokens = hit.max_output_tokens ?? "";
+    }
+    if (!addModelForm.value.reasoning_effort && hit.reasoning) {
+        addModelForm.value.reasoning_effort = "medium";
+    }
+};
+
+const editingModelIndex = ref(-1);
+
+const openEditModel = (index: number) => {
+    const model = form.value.models[index];
+    if (!model) return;
+    editingModelIndex.value = index;
+    addModelForm.value = {
+        smart_config: model.smart_config ?? true,
+        model_name: model.model_name,
+        context_limit: model.context_limit ?? "",
+        max_output_tokens: model.max_output_tokens ?? "",
+        temperature: model.temperature ?? null,
+        reasoning_effort: model.reasoning_effort ?? null,
+        input_types: model.input_types?.length
+            ? [...model.input_types]
+            : ["text"],
+        capabilities: [...(model.capabilities || [])],
+        reasoning_levels: [...(model.reasoning_levels || [])],
+        reasoning_param_map: model.reasoning_param_map || "",
+    };
+    showAddModel.value = true;
+};
+
+const resetAddModelForm = () => {
+    editingModelIndex.value = -1;
+    addModelForm.value = {
+        smart_config: true,
+        model_name: "",
+        context_limit: "",
+        max_output_tokens: "",
+        temperature: null,
+        reasoning_effort: null,
+        input_types: ["text"],
+        capabilities: [],
+        reasoning_levels: [],
+        reasoning_param_map: "",
+    };
+};
+
+const handleAddModel = () => {
+    const name = addModelForm.value.model_name.trim();
+    if (!name) return;
+    const editing = editingModelIndex.value >= 0;
+    const duplicated = form.value.models.some(
+        (m, i) => m.model_name === name && (!editing || i !== editingModelIndex.value)
+    );
+    if (duplicated) {
+        ZXNotification({
+            title: "模型已存在",
+            message: `列表中已有「${name}」`,
+            type: "warning",
+            position: "top-right",
+        });
+        return;
+    }
+    const next: ModelDetailItem = {
+        model_name: name,
+        smart_config: addModelForm.value.smart_config,
+        context_limit: addModelForm.value.context_limit
+            ? Number(addModelForm.value.context_limit) || null
+            : null,
+        max_output_tokens: addModelForm.value.max_output_tokens
+            ? Number(addModelForm.value.max_output_tokens) || null
+            : null,
+        temperature: addModelForm.value.temperature
+            ? Number(addModelForm.value.temperature)
+            : null,
+        reasoning_effort: addModelForm.value.reasoning_effort || null,
+        input_types: addModelForm.value.input_types,
+        capabilities: addModelForm.value.capabilities,
+        reasoning_levels: addModelForm.value.reasoning_levels,
+        reasoning_param_map: addModelForm.value.reasoning_param_map || null,
+    };
+    if (editing) {
+        form.value.models.splice(editingModelIndex.value, 1, next);
+    } else {
+        form.value.models.push(next);
+    }
+    showAddModel.value = false;
+    editingModelIndex.value = -1;
 };
 
 const removeModel = (index: number) => {
     form.value.models.splice(index, 1);
 };
 
-// 单模型连通性测速
+// 模型拖拽排序（拖动中实时换位；dragenter + 节流，避免 dragover 连触发导致抽搐）
+const dragModelIndex = ref<number | null>(null);
+const isDraggingModel = ref(false);
+let lastModelSwapAt = 0;
+
+const onModelDragStart = (index: number, e: DragEvent) => {
+    dragModelIndex.value = index;
+    isDraggingModel.value = true;
+    lastModelSwapAt = 0;
+    if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(index));
+    }
+};
+
+const trySwapModel = (index: number) => {
+    const from = dragModelIndex.value;
+    if (from === null || from === index) return;
+    const now = Date.now();
+    if (now - lastModelSwapAt < 120) return;
+    lastModelSwapAt = now;
+    const list = form.value.models;
+    const [item] = list.splice(from, 1);
+    if (!item) return;
+    list.splice(index, 0, item);
+    dragModelIndex.value = index;
+};
+
+const onModelDragEnter = (index: number, e: DragEvent) => {
+    if (dragModelIndex.value === null) return;
+    e.preventDefault();
+    trySwapModel(index);
+};
+
+const onModelDragOver = (e: DragEvent) => {
+    if (dragModelIndex.value === null) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+};
+
+const onModelDrop = (e: DragEvent) => {
+    e.preventDefault();
+    dragModelIndex.value = null;
+    isDraggingModel.value = false;
+};
+
+const onModelDragEnd = () => {
+    dragModelIndex.value = null;
+    isDraggingModel.value = false;
+};
+
 const handleTestModel = async (modelName: string) => {
     const fullModelName = `${form.value.name}/${modelName}`;
     modelTestState.value[modelName] = { loading: true };
@@ -414,6 +878,58 @@ const handleTestModel = async (modelName: string) => {
     }
 };
 
+// ---------------------------------------------------------------------------
+// 生命周期 / 保存
+// ---------------------------------------------------------------------------
+
+watch(
+    () => props.visible,
+    (val) => {
+        if (val) {
+            modelTestState.value = {};
+            modelsDevSearch.value = "";
+            activeSection.value = "basics";
+            showNameDialog.value = false;
+        }
+    }
+);
+
+watch(
+    () => props.provider,
+    (val) => {
+        if (val) {
+            form.value = {
+                name: val.name,
+                icon: (val as any).icon || "",
+                api_type: normalizeApiType(val.api_type),
+                api_base: val.api_base || "",
+                api_key_str: Array.isArray(val.api_key)
+                    ? val.api_key[0] || ""
+                    : val.api_key || "",
+                timeout: val.timeout ?? 180,
+                temperature: val.temperature ?? null,
+                max_output_tokens: val.max_output_tokens ?? null,
+                models: JSON.parse(JSON.stringify(val.models || [])),
+                enabled: val.enabled !== false,
+            };
+        } else {
+            form.value = {
+                name: "",
+                icon: "",
+                api_type: "openai",
+                api_base: "",
+                api_key_str: "",
+                timeout: 180,
+                temperature: null,
+                max_output_tokens: null,
+                models: [],
+                enabled: true,
+            };
+        }
+    },
+    { immediate: true }
+);
+
 const handleDeleteCurrent = () => {
     if (!form.value.name || props.saving) return;
     emit("delete", form.value.name);
@@ -422,15 +938,11 @@ const handleDeleteCurrent = () => {
 const handleSave = () => {
     if (!form.value.name.trim() || props.saving) return;
 
-    // 解析 Key
-    const rawKeys = form.value.api_key_str
-        .split("\n")
-        .map((k) => k.trim())
-        .filter(Boolean);
-    const apiKey = rawKeys.length <= 1 ? rawKeys[0] || "" : rawKeys;
+    const apiKey = form.value.api_key_str.trim();
 
     const provider: ProviderItem = {
         name: form.value.name.trim(),
+        icon: form.value.icon || undefined,
         api_type: form.value.api_type.trim(),
         api_base: form.value.api_base.trim() || null,
         api_key: apiKey,
@@ -439,475 +951,610 @@ const handleSave = () => {
         max_output_tokens: form.value.max_output_tokens
             ? Number(form.value.max_output_tokens)
             : null,
-        models: form.value.models,
+        models: form.value.models.filter((m) => m.enabled !== false),
         enabled: form.value.enabled,
         priority: props.provider?.priority ?? 1,
         weight: props.provider?.weight ?? 10,
-    };
+    } as ProviderItem;
 
     emit("save", provider);
 };
+
+const handleOverlayClick = (e: MouseEvent) => {
+    if (e.target === e.currentTarget) emit("close");
+};
+
+const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && props.visible) emit("close");
+};
+
+watch(
+    () => props.visible,
+    (val) => {
+        if (val) {
+            window.addEventListener("keydown", handleKeydown);
+        } else {
+            window.removeEventListener("keydown", handleKeydown);
+        }
+    }
+);
 </script>
 
+<style scoped>
+/* 不要在这里写 transform，会覆盖 TransitionGroup FLIP 的位移 */
+.model-row-item {
+    transition:
+        opacity 0.18s ease,
+        background-color 0.18s ease;
+}
+
+.model-row-move {
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.model-row-enter-active {
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.model-row-leave-active {
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+    position: absolute;
+    width: 100%;
+}
+
+.model-row-enter-from {
+    opacity: 0;
+}
+
+.model-row-leave-to {
+    opacity: 0;
+}
+</style>
+
 <template>
-    <ZxModal
-        :model-value="visible"
-        size="lg"
-        width="max-w-2xl"
-        :closable="false"
-        body-class="!p-0 !overflow-hidden"
-        @update:model-value="val => { if (!val) emit('close'); }"
-    >
-        <div class="relative flex h-full min-h-0 flex-col">
-                    <!-- models.dev 挑选服务商覆盖面板 (轻量层) -->
-                    <Transition
-                        enter-active-class="transition-all duration-200 ease-out"
-                        enter-from-class="opacity-0 scale-95"
-                        enter-to-class="opacity-100 scale-100"
-                        leave-active-class="transition-all duration-150 ease-in"
-                        leave-from-class="opacity-100 scale-100"
-                        leave-to-class="opacity-0 scale-95"
+    <Teleport to="body">
+        <Transition
+            :css="false"
+            @enter="modalJelly.onEnter"
+            @leave="modalJelly.onLeave"
+        >
+            <div
+                v-if="visible"
+                class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+                @click="handleOverlayClick"
+            >
+                <div class="glass-overlay absolute inset-0"></div>
+
+                <div
+                    class="modal-content relative z-1 flex h-[min(700px,88vh)] w-[min(960px,94vw)] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl sm:flex-row"
+                    @click.stop
+                >
+                    <!-- 左侧：标题 + 分组导航 + 删除（窄屏横排） -->
+                    <aside
+                        class="flex w-full shrink-0 flex-col p-3 sm:w-56 sm:p-3.5"
                     >
-                        <div
-                            v-if="showModelsDevPicker"
-                            class="absolute inset-0 z-30 flex flex-col bg-white rounded-3xl overflow-hidden"
-                        >
-                            <!-- 头部 -->
-                            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-6 py-4 shrink-0">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                                        <Globe class="h-4 w-4" />
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-zx-text-strong">从 models.dev 选择服务商</h3>
-                                        <p class="text-[11px] text-zx-text-muted">选择并自动填入官方接口地址、协议与模型列表</p>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle hover:bg-slate-100 hover:text-zx-text-muted transition"
-                                    @click="showModelsDevPicker = false"
-                                >
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-
-                            <!-- 搜索栏 -->
-                            <div class="p-3.5 border-b border-slate-100 bg-slate-50/40 shrink-0">
-                                <ZXInput
-                                    v-model="modelsDevSearch"
-                                    type="search"
-                                    rounded="xl"
-                                    size="sm"
-                                    placeholder="搜索服务商名称或标识 (如 Groq, Moonshot, Mistral, Together, Anthropic...)"
-                                    autofocus
-                                />
-                            </div>
-
-                            <!-- 服务商列表 -->
-                            <div class="flex-1 overflow-y-auto p-3 space-y-1">
-                                <!-- 加载中 -->
-                                <div v-if="loadingModelsDev" class="flex flex-col items-center justify-center py-16 text-zx-text-muted gap-2">
-                                    <Loader2 class="h-6 w-6 animate-spin text-zx-primary" />
-                                    <span class="text-xs">正在拉取 models.dev 全球模型目录...</span>
-                                </div>
-
-                                <!-- 空状态 -->
-                                <ZxEmptyState
-                                    v-else-if="filteredModelsDevProviders.length === 0"
-                                    size="sm"
-                                    text="未找到匹配的服务商"
-                                />
-
-                                <!-- 列表项 -->
-                                <div
-                                    v-else
-                                    v-for="p in filteredModelsDevProviders"
-                                    :key="p.id"
-                                    class="flex items-center justify-between p-3 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-slate-50/80 transition cursor-pointer group"
-                                    @click="applyModelsDevProvider(p)"
-                                >
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="flex h-9 w-9 items-center justify-center shrink-0 rounded-xl bg-slate-100 p-1 text-zx-text-muted">
-                                            <ProviderIcon :name="p.name" :api-type="p.api_type" size-class="h-6 w-6" />
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="flex items-center gap-2">
-                                                <span class="font-bold text-xs text-zx-text-strong group-hover:text-zx-primary transition-colors truncate">
-                                                    {{ p.name }}
-                                                </span>
-                                                <span class="text-[10px] text-zx-text-subtle font-mono shrink-0">({{ p.id }})</span>
-                                            </div>
-                                            <div class="text-[11px] text-zx-text-muted font-mono truncate mt-0.5" :title="p.api_base || undefined">
-                                                {{ p.api_base || '使用协议官方默认端点' }}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center gap-2 shrink-0">
-                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-zx-text-muted font-mono">
-                                            {{ p.api_type }}
-                                        </span>
-                                        <span class="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 font-medium">
-                                            {{ p.models_count }} 模型
-                                        </span>
-                                        <span class="text-xs text-zx-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium ml-1">
-                                            选择导入 &rarr;
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 底部栏 -->
-                            <div class="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-3 shrink-0">
-                                <span class="text-xs text-zx-text-muted">
-                                    共 {{ modelsDevCatalog.length }} 家在线服务商可选
-                                </span>
-                                <ZxButton variant="ghost" size="sm" @click="showModelsDevPicker = false">
-                                    返回编辑
-                                </ZxButton>
-                            </div>
-                        </div>
-                    </Transition>
-
-                    <!-- 弹窗主标题 -->
-                    <div
-                        class="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4 shrink-0"
-                    >
-                        <div class="flex items-center gap-2.5">
+                        <div class="hidden sm:block">
+                            <p
+                                class="select-none px-2.5 text-xl font-bold text-zx-text-strong"
+                            >
+                                {{ isEditMode ? "配置服务商" : "添加服务商" }}
+                            </p>
                             <div
-                                class="flex h-8 w-8 items-center justify-center shrink-0 text-zx-text-muted"
+                                class="mt-3 flex items-center gap-2 rounded-2xl bg-[var(--zx-color-surface-muted)] px-2.5 py-2"
                             >
                                 <ProviderIcon
                                     :name="form.name"
                                     :api-type="form.api_type"
-                                    size-class="h-7 w-7"
+                                    :icon-key="form.icon"
+                                    size-class="h-8 w-8 shrink-0"
                                 />
-                            </div>
-                            <div>
-                                <h3 class="text-base font-bold text-zx-text-strong">
-                                    {{ isEditMode ? `配置服务商: ${form.name}` : "添加服务提供商" }}
-                                </h3>
-                                <p class="text-[11px] text-zx-text-subtle">
-                                    配置服务商连接地址、协议、API 密钥与模型列表
+                                <p
+                                    class="min-w-0 flex-1 truncate text-sm font-semibold text-zx-text-strong"
+                                >
+                                    {{ form.name || "未命名服务商" }}
                                 </p>
+                                <ZxButton
+                                    variant="ghost"
+                                    circle
+                                    size="sm"
+                                    title="重命名 / 更换图标"
+                                    @click="openNameDialog"
+                                >
+                                    <Pencil class="h-3.5 w-3.5" />
+                                </ZxButton>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <!-- 渠道启用/禁用开关 -->
-                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 border border-slate-200/80">
-                                <span
-                                    class="text-xs font-medium"
-                                    :class="form.enabled ? 'text-emerald-600' : 'text-zx-text-subtle'"
-                                >
-                                    {{ form.enabled ? "已启用" : "已禁用" }}
-                                </span>
-                                <ZxSwitch v-model="form.enabled" title="切换渠道启用状态" />
-                            </div>
 
+                        <p
+                            class="px-2.5 pb-2 text-sm font-bold text-zx-text-strong sm:hidden"
+                        >
+                            {{ isEditMode ? "配置服务商" : "添加服务商" }}
+                        </p>
+
+                        <div
+                            class="mb-1 flex items-center gap-2 rounded-2xl bg-[var(--zx-color-surface-muted)] px-2.5 py-2 sm:hidden"
+                        >
+                            <ProviderIcon
+                                :name="form.name"
+                                :api-type="form.api_type"
+                                :icon-key="form.icon"
+                                size-class="h-8 w-8 shrink-0"
+                            />
+                            <p
+                                class="min-w-0 flex-1 truncate text-sm font-semibold text-zx-text-strong"
+                            >
+                                {{ form.name || "未命名服务商" }}
+                            </p>
+                            <ZxButton
+                                variant="ghost"
+                                circle
+                                size="sm"
+                                title="重命名 / 更换图标"
+                                @click="openNameDialog"
+                            >
+                                <Pencil class="h-3.5 w-3.5" />
+                            </ZxButton>
+                        </div>
+
+                        <nav
+                            class="flex flex-1 gap-1 overflow-x-auto sm:mt-4 sm:flex-col sm:overflow-y-auto"
+                        >
+                            <button
+                                v-for="section in sections"
+                                :key="section.id"
+                                type="button"
+                                class="flex shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors"
+                                :class="
+                                    activeSection === section.id
+                                        ? 'bg-zx-primary-tint font-semibold text-zx-primary'
+                                        : 'font-medium text-[var(--zx-color-text-muted)] hover:bg-[var(--zx-color-surface-muted)] hover:text-[var(--zx-color-text)]'
+                                "
+                                @click="goSection(section.id)"
+                            >
+                                <component
+                                    :is="section.icon"
+                                    class="h-[17px] w-[17px] shrink-0"
+                                />
+                                <span>{{ section.label }}</span>
+                            </button>
+                        </nav>
+
+                        <button
+                            v-if="isEditMode"
+                            type="button"
+                            class="mt-2 flex shrink-0 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium text-[var(--zx-color-text-muted)] transition-colors hover:bg-zx-danger-soft hover:text-zx-danger sm:mt-3"
+                            :disabled="saving"
+                            @click="handleDeleteCurrent"
+                        >
+                            <Trash2 class="h-[17px] w-[17px] shrink-0" />
+                            <span>删除服务商</span>
+                        </button>
+                    </aside>
+
+                    <!-- 右侧：分页内容 + 底栏 -->
+                    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+                        <main
+                            class="relative min-h-0 flex-1 overflow-y-auto p-5 select-text sm:py-8 sm:pl-10 sm:pr-12"
+                        >
                             <button
                                 type="button"
-                                class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition hover:bg-slate-100 hover:text-zx-text-muted"
+                                class="absolute right-4 top-4 z-10 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[var(--zx-color-text-muted)] transition-colors hover:bg-[var(--zx-color-surface-muted)] hover:text-[var(--zx-color-text)]"
                                 @click="emit('close')"
                             >
                                 <X class="h-4 w-4" />
                             </button>
-                        </div>
-                    </div>
 
-                    <!-- 滚动表单内容区 -->
-                    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-sm">
-                        <!-- 快速配置模板与 models.dev 选择入口 (仅新增时展示) -->
-                        <div v-if="!isEditMode" class="space-y-2.5 pb-3 border-b border-slate-100">
-                            <div class="flex items-center justify-between">
-                                <label class="font-medium text-xs text-zx-text-strong">
-                                    快速配置模板
-                                </label>
-                                <button
-                                    type="button"
-                                    class="cursor-pointer flex items-center gap-1 text-xs text-zx-primary hover:underline font-medium"
-                                    @click="openModelsDevPicker"
+                            <!-- 页头 -->
+                            <div class="mb-6 pr-10">
+                                <h2
+                                    class="text-[19px] font-bold text-zx-text-strong"
                                 >
-                                    <Globe class="h-3.5 w-3.5" />
-                                    <span>从 models.dev 选择服务商...</span>
-                                </button>
+                                    {{ activeMeta.label }}
+                                </h2>
                             </div>
 
-                            <!-- 常用模板胶囊按钮 -->
-                            <div class="flex flex-wrap gap-1.5">
-                                <button
-                                    v-for="preset in PRESETS"
-                                    :key="preset.name"
-                                    type="button"
-                                    class="cursor-pointer flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-zx-text transition hover:border-zx-primary hover:bg-zx-primary-soft hover:text-zx-primary"
-                                    @click="applyPreset(preset)"
-                                >
-                                    <ProviderIcon
-                                        :name="preset.name"
-                                        :api-type="preset.api_type"
-                                        size-class="h-3.5 w-3.5"
-                                    />
-                                    <span>{{ preset.label }}</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 基础信息与协议 -->
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <!-- 服务商名称 -->
-                            <div class="space-y-1.5">
-                                <label class="font-medium text-xs text-zx-text-strong">
-                                    提供商名称 <span class="text-red-500">*</span>
-                                </label>
-                                <ZXInput
-                                    v-model="form.name"
-                                    placeholder="例如 DeepSeek, Gemini"
-                                    :disabled="isEditMode"
-                                    rounded="xl"
-                                    size="sm"
-                                    input-class="font-medium"
-                                />
-                            </div>
-
-                            <!-- 协议类型 -->
-                            <div class="space-y-1.5">
-                                <div class="flex items-center justify-between">
-                                    <label class="font-medium text-xs text-zx-text-strong">
-                                        协议类型 (API Type)
-                                    </label>
-                                    <span class="text-[11px] text-zx-text-subtle">点击快捷切换</span>
-                                </div>
-                                <ZXInput
-                                    v-model="form.api_type"
-                                    placeholder="openai, gemini, deepseek 等"
-                                    rounded="xl"
-                                    size="sm"
-                                    input-class="font-mono"
-                                />
-                                <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                                    <button
-                                        v-for="proto in CORE_PROTOCOLS"
-                                        :key="proto.value"
-                                        type="button"
-                                        class="text-[10px] px-2 py-0.5 rounded-md border transition-all cursor-pointer select-none"
-                                        :class="form.api_type === proto.value
-                                            ? 'bg-zx-primary-soft text-zx-primary border-zx-primary/40 font-bold shadow-xs'
-                                            : 'bg-white border-slate-200/80 text-zx-text-muted hover:bg-slate-50 hover:text-zx-text'"
-                                        @click="form.api_type = proto.value"
+                            <!-- 基础信息 -->
+                            <template v-if="activeSection === 'basics'">
+                                <div class="flex flex-col gap-5">
+                                    <div
+                                        class="flex flex-col gap-1.5"
                                     >
-                                        {{ proto.label }}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- API Base URL -->
-                        <div class="space-y-1.5">
-                            <label class="font-medium text-xs text-zx-text-strong">
-                                接口基础地址 (API Base URL)
-                            </label>
-                            <ZXInput
-                                v-model="form.api_base"
-                                placeholder="例如 https://api.deepseek.com (留空使用协议默认)"
-                                rounded="xl"
-                                size="sm"
-                                input-class="font-mono"
-                            />
-                        </div>
-
-                        <!-- API Key -->
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <label class="font-medium text-xs text-zx-text-strong">
-                                    API 密钥 (API Key) <span class="text-red-500">*</span>
-                                </label>
-                                <div class="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        class="text-xs text-zx-text-subtle hover:text-zx-text flex items-center gap-1 cursor-pointer"
-                                        @click="showKeyPlain = !showKeyPlain"
-                                    >
-                                        <Eye v-if="!showKeyPlain" class="h-3.5 w-3.5" />
-                                        <EyeOff v-else class="h-3.5 w-3.5" />
-                                        {{ showKeyPlain ? "掩码" : "明文" }}
-                                    </button>
-                                    <span class="text-[11px] text-zx-text-subtle">
-                                        支持每行一个进行轮询
-                                    </span>
-                                </div>
-                            </div>
-                            <ZXInput
-                                v-model="form.api_key_str"
-                                type="textarea"
-                                :rows="2"
-                                :placeholder="showKeyPlain ? 'sk-xxxxxxxxxxxxxxxxxxxxxxxx' : '••••••••••••••••••••••••'"
-                                input-class="font-mono leading-relaxed"
-                            />
-                        </div>
-
-                        <!-- 调用参数配置 (可选) -->
-                        <div class="space-y-2 pt-1 border-t border-slate-100">
-                            <label class="font-medium text-xs text-zx-text-strong">
-                                调用参数设置 (可选)
-                            </label>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div class="space-y-1">
-                                    <label class="font-medium text-[11px] text-zx-text-muted">
-                                        超时时间 (秒)
-                                    </label>
-                                    <ZxInputNumber
-                                        v-model="form.timeout"
-                                        size="sm"
-                                        placeholder="180"
-                                    />
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="font-medium text-[11px] text-zx-text-muted">
-                                        默认采样温度
-                                    </label>
-                                    <ZxInputNumber
-                                        :model-value="form.temperature ?? 0"
-                                        :step="0.1"
-                                        :precision="2"
-                                        size="sm"
-                                        placeholder="默认 (如 0.7)"
-                                        @update:model-value="(v: number) => (form.temperature = v)"
-                                    />
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="font-medium text-[11px] text-zx-text-muted">
-                                        最大输出 Token
-                                    </label>
-                                    <ZxInputNumber
-                                        :model-value="form.max_output_tokens ?? 0"
-                                        size="sm"
-                                        placeholder="不限制"
-                                        @update:model-value="(v: number) => (form.max_output_tokens = v)"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 模型列表管理 -->
-                        <div class="space-y-2 pt-2 border-t border-slate-100">
-                            <div class="flex items-center justify-between">
-                                <label class="font-medium text-xs text-zx-text-strong">
-                                    模型列表 ({{ form.models.length }})
-                                </label>
-                                <button
-                                    v-if="matchedOnlineProvider"
-                                    type="button"
-                                    class="text-xs text-zx-primary hover:underline cursor-pointer flex items-center gap-1 font-medium"
-                                    @click="syncModelsFromOnline"
-                                >
-                                    <Sparkles class="h-3.5 w-3.5" />
-                                    从 models.dev 补齐最新模型
-                                </button>
-                            </div>
-
-                            <!-- 添加模型输入框 -->
-                            <div class="flex gap-2">
-                                <ZXInput
-                                    v-model="newModelInput"
-                                    placeholder="输入模型标识（支持逗号或空格批量添加）"
-                                    rounded="xl"
-                                    size="sm"
-                                    input-class="font-mono"
-                                    class="flex-1"
-                                    @keydown.enter.prevent="addModel"
-                                />
-                                <ZxButton variant="primary" size="sm" @click="addModel">
-                                    <Plus class="h-3.5 w-3.5 mr-1" /> 添加
-                                </ZxButton>
-                            </div>
-
-                            <!-- 模型列表项（带单模型测速与移除） -->
-                            <div
-                                class="max-h-56 overflow-y-auto rounded-2xl border border-slate-100 bg-slate-50/50 p-2.5 space-y-1.5"
-                            >
-                                <div
-                                    v-for="(model, idx) in form.models"
-                                    :key="model.model_name"
-                                    class="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-zx-text shadow-2xs"
-                                >
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="font-mono font-bold truncate">
-                                            {{ model.model_name }}
-                                        </span>
-                                        <span
-                                            v-if="model.max_output_tokens"
-                                            class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-zx-text-muted font-mono"
+                                        <p
+                                            class="text-sm font-semibold text-zx-text-strong"
                                         >
-                                            {{ model.max_output_tokens }}
-                                        </span>
+                                            接口基础地址
+                                        </p>
+                                        <ZXInput
+                                            v-model="form.api_base"
+                                            rounded="xl"
+                                            input-class="font-mono"
+                                            placeholder="https://api.deepseek.com"
+                                            autocomplete="off"
+                                            name="zx-api-base"
+                                            id="zx-api-base"
+                                        >
+                                            <template #suffix>
+                                                <button
+                                                    type="button"
+                                                    class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text"
+                                                    title="选择服务商预设"
+                                                    @click="openProviderPicker"
+                                                >
+                                                    <Library class="h-3.5 w-3.5" />
+                                                </button>
+                                            </template>
+                                        </ZXInput>
                                     </div>
 
-                                    <div class="flex items-center gap-1.5 shrink-0">
-                                        <!-- 测速耗时显示 -->
-                                        <span
-                                            v-if="modelTestState[model.model_name]?.latency_ms"
-                                            class="text-[10px] font-mono text-emerald-600 font-bold"
+                                    <div
+                                        class="flex flex-col gap-1.5"
+                                    >
+                                        <p
+                                            class="text-sm font-semibold text-zx-text-strong"
                                         >
-                                            {{ modelTestState[model.model_name].latency_ms }} ms
-                                        </span>
+                                            API 格式
+                                        </p>
+                                        <ZXSelect
+                                            v-model="form.api_type"
+                                            class="w-full"
+                                            :options="apiFormatOptions"
+                                            placeholder="选择 API 格式"
+                                            trigger-class="flex h-9 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-zx-text transition-colors hover:border-zx-primary"
+                                        >
+                                            <template #trigger>
+                                                <span
+                                                    class="min-w-0 flex-1 truncate text-left"
+                                                >
+                                                    {{ apiFormatDisplay }}
+                                                </span>
+                                                <ChevronDown
+                                                    class="h-4 w-4 shrink-0 text-zx-text-muted"
+                                                />
+                                            </template>
+                                        </ZXSelect>
+                                    </div>
 
-                                        <!-- 测通按钮 -->
-                                        <button
-                                            type="button"
-                                            class="p-1 rounded-lg text-zx-text-subtle hover:text-zx-primary hover:bg-slate-100 transition cursor-pointer"
-                                            title="测试此模型连通性"
-                                            :disabled="modelTestState[model.model_name]?.loading"
-                                            @click="handleTestModel(model.model_name)"
+                                    <div
+                                        class="flex flex-col gap-1.5"
+                                    >
+                                        <p
+                                            class="text-sm font-semibold text-zx-text-strong"
                                         >
-                                            <Loader2
-                                                v-if="modelTestState[model.model_name]?.loading"
-                                                class="h-3.5 w-3.5 animate-spin text-zx-primary"
+                                            API 密钥
+                                            <span class="text-zx-danger">*</span>
+                                        </p>
+                                        <ZXInput
+                                            v-model="form.api_key_str"
+                                            type="password"
+                                            rounded="xl"
+                                            input-class="font-mono"
+                                            placeholder="sk-..."
+                                            autocomplete="new-password"
+                                            name="zx-api-secret"
+                                            id="zx-api-secret"
+                                        />
+                                    </div>
+
+                                    <div
+                                        class="flex flex-col gap-1.5"
+                                    >
+                                        <div
+                                            class="flex flex-wrap items-center justify-between gap-2"
+                                        >
+                                            <p
+                                                class="text-sm font-semibold text-zx-text-strong"
+                                            >
+                                                模型列表
+                                            </p>
+                                            <div class="flex items-center gap-2">
+                                                <ZxButton
+                                                    v-if="matchedOnlineProvider"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    @click="syncModelsFromOnline"
+                                                >
+                                                    <Sparkles
+                                                        class="mr-1 h-3.5 w-3.5"
+                                                    />
+                                                    补齐最新模型
+                                                </ZxButton>
+                                                <ZxButton
+                                                    variant="outline"
+                                                    size="xs"
+                                                    title="从 models.dev 更新在线模型库"
+                                                    :loading="refreshingModelsDev"
+                                                    @click="refreshModelsDev"
+                                                >
+                                                    <RefreshCw class="mr-0.5 h-3 w-3" />
+                                                    更新模型库
+                                                </ZxButton>
+                                                <ZxButton
+                                                    variant="primary"
+                                                    size="xs"
+                                                    @click="openAddModel"
+                                                >
+                                                    <Plus class="mr-0.5 h-3 w-3" />
+                                                    添加
+                                                </ZxButton>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="max-h-48 overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-200"
+                                        >
+                                            <div
+                                                v-if="!form.models.length"
+                                                class="px-4"
+                                            >
+                                                <ZxEmptyState
+                                                    size="sm"
+                                                    text="尚未添加模型"
+                                                    sub-text="点击右上角「添加」配置模型"
+                                                />
+                                            </div>
+
+                                            <div
+                                                v-else
+                                                class="divide-y divide-slate-100"
+                                                :class="
+                                                    isDraggingModel
+                                                        ? 'is-dragging'
+                                                        : ''
+                                                "
+                                            >
+                                                <TransitionGroup name="model-row">
+                                                    <div
+                                                        v-for="(model, idx) in form.models"
+                                                        :key="model.model_name"
+                                                        class="model-row-item flex items-center gap-2 px-3 py-2"
+                                                        :class="
+                                                            dragModelIndex === idx
+                                                                ? 'opacity-40'
+                                                                : ''
+                                                        "
+                                                        draggable="true"
+                                                        @dragstart="
+                                                            onModelDragStart(idx, $event)
+                                                        "
+                                                        @dragenter="onModelDragEnter(idx, $event)"
+                                                        @dragover="onModelDragOver"
+                                                        @drop="onModelDrop"
+                                                        @dragend="onModelDragEnd"
+                                                    >
+                                                    <span
+                                                        class="flex h-7 w-5 shrink-0 cursor-grab items-center justify-center text-zx-text-subtle active:cursor-grabbing"
+                                                        title="拖动调整顺序"
+                                                    >
+                                                        <GripVertical class="h-3.5 w-3.5" />
+                                                    </span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <p
+                                                            class="truncate font-mono text-sm font-semibold text-zx-text-strong"
+                                                        >
+                                                            {{
+                                                                model.model_name
+                                                            }}
+                                                        </p>
+                                                    </div>
+
+                                                    <div
+                                                        class="flex shrink-0 items-center gap-1.5"
+                                                    >
+                                                        <ZxTag
+                                                            v-if="
+                                                                modelTestState[
+                                                                    model
+                                                                        .model_name
+                                                                ]?.loading ===
+                                                                false
+                                                            "
+                                                            :variant="
+                                                                modelTestState[
+                                                                    model
+                                                                        .model_name
+                                                                ]?.success
+                                                                    ? 'success'
+                                                                    : 'danger'
+                                                            "
+                                                        >
+                                                            {{
+                                                                modelTestState[
+                                                                    model
+                                                                        .model_name
+                                                                ]?.success
+                                                                    ? modelTestState[
+                                                                          model
+                                                                              .model_name
+                                                                      ]
+                                                                          ?.latency_ms !=
+                                                                      null
+                                                                        ? `${modelTestState[model.model_name].latency_ms}ms`
+                                                                        : "OK"
+                                                                    : `${modelTestState[model.model_name]?.message || "ERR"} 失败`
+                                                            }}
+                                                        </ZxTag>
+                                                        <ZxButton
+                                                            variant="ghost"
+                                                            circle
+                                                            size="sm"
+                                                            title="测试此模型连通性"
+                                                            :disabled="
+                                                                modelTestState[
+                                                                    model
+                                                                        .model_name
+                                                                ]?.loading
+                                                            "
+                                                            @click="
+                                                                handleTestModel(
+                                                                    model.model_name
+                                                                )
+                                                            "
+                                                        >
+                                                            <Loader2
+                                                                v-if="
+                                                                    modelTestState[
+                                                                        model
+                                                                            .model_name
+                                                                    ]?.loading
+                                                                "
+                                                                class="h-3.5 w-3.5 animate-spin text-zx-primary"
+                                                            />
+                                                            <Plug
+                                                                v-else
+                                                                class="h-3.5 w-3.5"
+                                                            />
+                                                        </ZxButton>
+                                                        <ZxButton
+                                                            variant="ghost"
+                                                            circle
+                                                            size="sm"
+                                                            title="配置模型"
+                                                            @click="
+                                                                openEditModel(idx)
+                                                            "
+                                                        >
+                                                            <Pencil class="h-3.5 w-3.5" />
+                                                        </ZxButton>
+                                                        <ZxButton
+                                                            variant="ghost"
+                                                            circle
+                                                            size="sm"
+                                                            title="移除模型"
+                                                            @click="
+                                                                removeModel(idx)
+                                                            "
+                                                        >
+                                                            <X
+                                                                class="h-3.5 w-3.5"
+                                                            />
+                                                        </ZxButton>
+                                                        <ZxSwitch
+                                                            :model-value="
+                                                                model.enabled !==
+                                                                false
+                                                            "
+                                                            title="关闭后不写入配置"
+                                                            @update:model-value="
+                                                                (v: boolean) =>
+                                                                    (model.enabled =
+                                                                        v)
+                                                            "
+                                                        />
+                                                    </div>
+                                                    </div>
+                                                </TransitionGroup>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- 调用参数 -->
+                            <template v-else-if="activeSection === 'params'">
+                                <div class="flex flex-col gap-5">
+                                    <div
+                                        class="flex flex-col gap-1.5"
+                                    >
+                                        <p
+                                            class="text-sm font-semibold text-zx-text-strong"
+                                        >
+                                            超时时间（秒）
+                                        </p>
+                                        <div class="max-w-xs">
+                                            <ZXInput
+                                                :model-value="
+                                                    form.timeout == null
+                                                        ? ''
+                                                        : String(form.timeout)
+                                                "
+                                                rounded="xl"
+                                                input-class="font-mono"
+                                                placeholder="180"
+                                                @update:model-value="
+                                                    (v: string | number) =>
+                                                        (form.timeout =
+                                                            Number(v) || 0)
+                                                "
                                             />
-                                            <Play v-else class="h-3.5 w-3.5" />
-                                        </button>
+                                        </div>
+                                    </div>
 
-                                        <!-- 移除按钮 -->
-                                        <button
-                                            type="button"
-                                            class="p-1 rounded-lg text-zx-text-subtle hover:text-zx-danger hover:bg-slate-100 transition cursor-pointer"
-                                            title="移除模型"
-                                            @click="removeModel(idx)"
+                                    <div
+                                        class="flex flex-col gap-1.5"
+                                    >
+                                        <p
+                                            class="text-sm font-semibold text-zx-text-strong"
                                         >
-                                            <X class="h-3.5 w-3.5" />
-                                        </button>
+                                            默认采样温度
+                                        </p>
+                                        <div class="max-w-xs">
+                                            <ZXInput
+                                                :model-value="
+                                                    form.temperature == null
+                                                        ? ''
+                                                        : String(form.temperature)
+                                                "
+                                                rounded="xl"
+                                                input-class="font-mono"
+                                                placeholder="例如 0.7"
+                                                @update:model-value="
+                                                    (v: string | number) =>
+                                                        (form.temperature =
+                                                            v === '' ||
+                                                            v == null
+                                                                ? null
+                                                                : Number(v))
+                                                "
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="flex flex-col gap-1.5"
+                                    >
+                                        <p
+                                            class="text-sm font-semibold text-zx-text-strong"
+                                        >
+                                            最大输出 Token
+                                        </p>
+                                        <div class="max-w-xs">
+                                            <ZXInput
+                                                :model-value="
+                                                    form.max_output_tokens == null
+                                                        ? ''
+                                                        : String(
+                                                              form.max_output_tokens
+                                                          )
+                                                "
+                                                rounded="xl"
+                                                input-class="font-mono"
+                                                placeholder="不限制"
+                                                @update:model-value="
+                                                    (v: string | number) =>
+                                                        (form.max_output_tokens =
+                                                            v === '' ||
+                                                            v == null
+                                                                ? null
+                                                                : Number(v))
+                                                "
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+                            </template>
+                        </main>
 
-                                <div
-                                    v-if="!form.models.length"
-                                    class="w-full py-4 text-center text-xs text-zx-text-subtle"
-                                >
-                                    尚未添加模型，请输入模型名称添加或从上方模板载入
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 弹窗底部操作栏 -->
-                    <div
-                        class="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-6 py-4 shrink-0"
-                    >
-                        <div>
-                            <ZxButton
-                                v-if="isEditMode"
-                                variant="danger"
-                                size="sm"
-                                @click="handleDeleteCurrent"
-                            >
-                                <Trash2 class="h-3.5 w-3.5 mr-1" />
-                                删除服务商
-                            </ZxButton>
-                        </div>
-
-                        <div class="flex items-center gap-2.5">
+                        <!-- 底部操作栏 -->
+                        <div
+                            class="flex shrink-0 items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:px-8"
+                        >
                             <ZxButton
                                 variant="ghost"
-                                size="sm"
+                                size="md"
                                 :disabled="saving"
                                 @click="emit('close')"
                             >
@@ -915,16 +1562,383 @@ const handleSave = () => {
                             </ZxButton>
                             <ZxButton
                                 variant="primary"
-                                size="sm"
+                                size="md"
                                 :loading="saving"
                                 :disabled="!form.name.trim() || saving"
                                 @click="handleSave"
                             >
-                                <Check class="h-3.5 w-3.5 mr-1" />
+                                <Check class="mr-1 h-3.5 w-3.5" />
                                 保存配置
                             </ZxButton>
                         </div>
                     </div>
-        </div>
-    </ZxModal>
+                </div>
+            </div>
+        </Transition>
+
+        <!-- 添加模型 -->
+        <ZxModal
+            v-model="showAddModel"
+            :title="editingModelIndex >= 0 ? '配置模型' : '添加模型'"
+            size="md"
+            width="max-w-xl"
+            :closable="true"
+            body-class="!p-0"
+        >
+            <div class="relative flex flex-col gap-3 px-5 py-4">
+                <!-- 模型 ID + 搜索 -->
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs text-zx-text-strong">模型 ID</p>
+                    <ZXInput
+                        v-model="addModelForm.model_name"
+                        rounded="xl"
+                        size="sm"
+                        placeholder="输入或搜索模型 ID"
+                        input-class="font-mono"
+                        @blur="smartFillFromModelsDev"
+                    >
+                        <template #suffix>
+                            <button
+                                type="button"
+                                class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-zx-text-subtle transition-colors hover:bg-slate-100 hover:text-zx-text"
+                                title="从 models.dev 搜索模型"
+                                @click="openModelSearch"
+                            >
+                                <Search class="h-3.5 w-3.5" />
+                            </button>
+                        </template>
+                    </ZXInput>
+                </div>
+
+                <!-- 上下文窗口 / 最大输出 Token -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                        <ZXInput
+                            v-model="addModelForm.context_limit"
+                            rounded="xl"
+                            size="sm"
+                            input-class="font-mono"
+                            placeholder="上下文窗口，如 128000"
+                        />
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <p class="text-xs text-zx-text-strong">最大输出 Token</p>
+                        <ZXInput
+                            v-model="addModelForm.max_output_tokens"
+                            rounded="xl"
+                            size="sm"
+                            input-class="font-mono"
+                            placeholder="输出上限，如 8192"
+                        />
+                    </div>
+                </div>
+
+                <!-- 推理等级 -->
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs text-zx-text-strong">推理等级</p>
+                    <div
+                        class="flex min-h-9 flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 transition-colors focus-within:border-zx-primary hover:border-zx-primary"
+                    >
+                        <span
+                            v-for="(level, idx) in addModelForm.reasoning_levels"
+                            :key="`${level}-${idx}`"
+                            class="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs text-zx-text"
+                        >
+                            {{ level }}
+                            <button
+                                type="button"
+                                class="cursor-pointer text-zx-text-subtle hover:text-zx-danger"
+                                @click="removeReasoningLevel(idx)"
+                            >
+                                <X class="h-3 w-3" />
+                            </button>
+                        </span>
+                        <input
+                            v-model="reasoningLevelInput"
+                            class="min-w-[8rem] flex-1 bg-transparent text-sm text-zx-text outline-none placeholder:text-zx-text-subtle"
+                            placeholder="输入档位后按 Enter，如 low、high、max"
+                            @keydown.enter.prevent="commitReasoningLevel"
+                            @keydown.backspace="
+                                !reasoningLevelInput &&
+                                    addModelForm.reasoning_levels.length &&
+                                    removeReasoningLevel(
+                                        addModelForm.reasoning_levels.length - 1
+                                    )
+                            "
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <template #footer>
+                <div class="flex w-full items-center justify-between gap-3">
+                    <button
+                        type="button"
+                        class="cursor-pointer text-xs text-zx-text-muted underline underline-offset-4 hover:text-zx-text"
+                        @click="resetAddModelForm"
+                    >
+                        重置表单
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <ZxButton variant="ghost" size="sm" @click="showAddModel = false">
+                            取消
+                        </ZxButton>
+                        <ZxButton
+                            size="sm"
+                            :disabled="!addModelForm.model_name.trim()"
+                            @click="handleAddModel"
+                        >
+                            保存
+                        </ZxButton>
+                    </div>
+                </div>
+            </template>
+        </ZxModal>
+
+        <!-- 服务商预设 / models.dev 选择 -->
+        <ZxModal
+            v-model="showProviderPicker"
+            title="服务商预设"
+            size="lg"
+            width="max-w-2xl"
+            :closable="true"
+        >
+            <div class="flex flex-col gap-4">
+                <!-- 常用预设：自定义优先 -->
+                <div class="flex flex-col gap-2">
+                    <p class="text-sm font-semibold text-zx-text-strong">
+                        常用预设
+                    </p>
+                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button
+                            v-for="preset in PRESETS"
+                            :key="preset.name"
+                            type="button"
+                            class="btn-touch flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-left transition-colors hover:border-zx-primary hover:bg-zx-primary-soft"
+                            @click="applyPreset(preset)"
+                        >
+                            <ProviderIcon
+                                :name="preset.name"
+                                :api-type="preset.api_type"
+                                size-class="h-7 w-7"
+                            />
+                            <div class="min-w-0 flex-1">
+                                <p
+                                    class="truncate text-sm font-semibold text-zx-text-strong"
+                                >
+                                    {{ preset.label }}
+                                </p>
+                                <p
+                                    class="truncate font-mono text-[11px] text-zx-text-subtle"
+                                >
+                                    {{ preset.api_base || "自定义端点" }}
+                                </p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- models.dev -->
+                <div class="flex flex-col gap-2">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-2"
+                    >
+                        <p class="text-sm font-semibold text-zx-text-strong">
+                            从 models.dev 选择
+                        </p>
+                        <ZxButton
+                            variant="outline"
+                            size="sm"
+                            :loading="refreshingModelsDev || loadingModelsDev"
+                            @click="refreshModelsDev"
+                        >
+                            <RefreshCw class="mr-1 h-3.5 w-3.5" />
+                            更新目录
+                        </ZxButton>
+                    </div>
+
+                    <ZXInput
+                        v-model="modelsDevSearch"
+                        type="search"
+                        placeholder="搜索服务商..."
+                    />
+
+                    <div
+                        v-if="loadingModelsDev"
+                        class="flex items-center justify-center gap-2 py-8 text-zx-text-muted"
+                    >
+                        <Loader2 class="h-4 w-4 animate-spin text-zx-primary" />
+                        <span class="text-xs">正在加载 models.dev...</span>
+                    </div>
+
+                    <ZxEmptyState
+                        v-else-if="!filteredModelsDevProviders.length"
+                        size="sm"
+                        :icon="Globe"
+                        text="未找到服务商"
+                        sub-text="可点击「更新目录」拉取最新列表"
+                    />
+
+                    <div
+                        v-else
+                        class="max-h-72 overflow-y-auto rounded-2xl border border-slate-200"
+                    >
+                        <button
+                            v-for="p in filteredModelsDevProviders"
+                            :key="p.id"
+                            type="button"
+                            class="flex w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-[var(--zx-color-surface-muted)]"
+                            @click="applyModelsDevProvider(p)"
+                        >
+                            <ProviderIcon
+                                :name="p.name"
+                                :api-type="p.api_type"
+                                size-class="h-7 w-7"
+                            />
+                            <div class="min-w-0 flex-1">
+                                <p
+                                    class="truncate text-sm font-semibold text-zx-text-strong"
+                                >
+                                    {{ p.name }}
+                                </p>
+                                <p
+                                    class="truncate font-mono text-[11px] text-zx-text-muted"
+                                >
+                                    {{ p.api_base || "官方默认端点" }}
+                                </p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </ZxModal>
+
+        <!-- 模型搜索弹窗 -->
+        <ZxModal
+            v-model="showModelSearch"
+            title="搜索模型"
+            size="md"
+            width="max-w-lg"
+            :closable="true"
+        >
+            <ZXInput
+                v-model="modelSearchQuery"
+                type="search"
+                rounded="xl"
+                size="sm"
+                placeholder="搜索 models.dev 模型..."
+                autofocus
+            />
+
+            <div
+                v-if="loadingModelsDev"
+                class="flex items-center justify-center gap-2 py-8 text-zx-text-muted"
+            >
+                <Loader2 class="h-4 w-4 animate-spin text-zx-primary" />
+                <span class="text-xs">加载中...</span>
+            </div>
+
+            <div v-else-if="!filteredModelsDevModels.length" class="py-6">
+                <ZxEmptyState size="sm" text="未找到匹配模型" />
+            </div>
+
+            <div
+                v-else
+                class="mt-3 max-h-72 overflow-y-auto rounded-2xl border border-slate-200"
+            >
+                <button
+                    v-for="m in filteredModelsDevModels"
+                    :key="`${m.provider_id}/${m.id}`"
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--zx-color-surface-muted)]"
+                    @click="applyModelFromDev(m)"
+                >
+                    <div class="min-w-0 flex-1">
+                        <p
+                            class="truncate font-mono text-xs font-semibold text-zx-text-strong"
+                        >
+                            {{ m.id }}
+                        </p>
+                        <p class="truncate text-[11px] text-zx-text-subtle">
+                            {{ m.provider }}
+                            <span v-if="m.context_limit">
+                                · {{ m.context_limit }}
+                            </span>
+                        </p>
+                    </div>
+                    <Check
+                        v-if="addModelForm.model_name === m.id"
+                        class="h-3.5 w-3.5 shrink-0 text-zx-primary"
+                    />
+                </button>
+            </div>
+        </ZxModal>
+
+        <!-- 重命名 / 更换图标 -->
+        <ZxModal
+            v-model="showNameDialog"
+            title="重命名服务商"
+            size="md"
+            width="max-w-lg"
+            :closable="true"
+        >
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs text-zx-text-strong">名称</p>
+                    <ZXInput
+                        v-model="nameDraft"
+                        rounded="xl"
+                        size="sm"
+                        placeholder="服务商名称"
+                        @keydown.enter.prevent="confirmNameDialog"
+                    />
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs text-zx-text-strong">图标</p>
+                    <div
+                        class="grid max-h-64 grid-cols-6 gap-2 overflow-y-auto rounded-2xl border border-slate-200 p-2"
+                    >
+                        <button
+                            v-for="key in PROVIDER_ICON_KEYS"
+                            :key="key"
+                            type="button"
+                            class="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border transition-colors"
+                            :class="
+                                iconDraft === key
+                                    ? 'border-zx-primary bg-zx-primary-soft'
+                                    : 'border-slate-200 hover:border-zx-primary'
+                            "
+                            :title="key"
+                            @click="iconDraft = key"
+                        >
+                            <ProviderIcon
+                                :icon-key="key"
+                                :name="key"
+                                size-class="h-7 w-7"
+                            />
+                        </button>
+                    </div>
+                    <button
+                        type="button"
+                        class="self-start text-xs text-zx-text-muted underline underline-offset-4 hover:text-zx-text"
+                        @click="iconDraft = ''"
+                    >
+                        跟随名称自动匹配
+                    </button>
+                </div>
+            </div>
+
+            <template #footer>
+                <ZxButton variant="ghost" size="sm" @click="showNameDialog = false">
+                    取消
+                </ZxButton>
+                <ZxButton size="sm" @click="confirmNameDialog">
+                    <Check class="mr-1 h-3.5 w-3.5" />
+                    确定
+                </ZxButton>
+            </template>
+        </ZxModal>
+    </Teleport>
 </template>

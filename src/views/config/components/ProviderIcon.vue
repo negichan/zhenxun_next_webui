@@ -1,23 +1,34 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { Bot } from "lucide-vue-next";
 
 interface Props {
     name?: string;
     apiType?: string;
     sizeClass?: string;
+    /** 显式指定图标 key（public/icons/providers/<key>.svg），优先于名称映射 */
+    iconKey?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     name: "",
     apiType: "",
     sizeClass: "h-5 w-5",
+    iconKey: "",
 });
 
 const imgLoadError = ref(false);
 
+watch(
+    () => props.iconKey,
+    () => {
+        imgLoadError.value = false;
+    }
+);
+
 // 映射厂商别名到 public/icons/providers/ 中的 SVG 文件名
-const iconKey = computed<string | null>(() => {
+const resolvedIconKey = computed<string | null>(() => {
+    if (props.iconKey) return props.iconKey;
     const n = (props.name || "").toLowerCase().trim();
     const t = (props.apiType || "").toLowerCase().trim();
 
@@ -80,8 +91,8 @@ const iconKey = computed<string | null>(() => {
 });
 
 const iconSrc = computed(() => {
-    if (!iconKey.value || imgLoadError.value) return null;
-    return `${import.meta.env.BASE_URL}icons/providers/${iconKey.value}.svg`;
+    if (!resolvedIconKey.value || imgLoadError.value) return null;
+    return `${import.meta.env.BASE_URL}icons/providers/${resolvedIconKey.value}.svg`;
 });
 
 const onImgError = () => {
