@@ -117,7 +117,7 @@ const btnClasses =
 <template>
     <div
         v-tile-glow
-        class="group flex w-full items-center overflow-hidden rounded-full border border-slate-200 bg-white transition-colors duration-200 hover:border-zx-primary focus-within:border-zx-primary"
+        class="group flex w-full items-center overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors duration-200 hover:border-zx-primary focus-within:border-zx-primary select-text"
         :class="[sizeClass.root, disabled ? 'cursor-not-allowed bg-slate-100 opacity-60' : '']"
     >
         <button
